@@ -43,7 +43,7 @@ rbtest/
 + makefile
 + go_rbtest.sh
 # CREATE THE DEMO WITH THE MAKE UTILITY:
-Run the following command combo in each folder, starting in folder `util/` and ending in folder `rbtest`.
+Run the following command combo in each folder, starting in folder `util/` and ending in folder `rbtest/`.
 ```bash
 make clean; make
 ```
