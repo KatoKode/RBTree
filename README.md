@@ -26,7 +26,7 @@ by Cormen, Leiserson, Rivest, and Stein
 
 ---
 
-# CREATE THE DEMO WITH THE MAKE UTILITY:
+# CREATE THE DEMO
 Run the following command in the `Red-Black-Tree-main` folder:
 ```bash
 sh rbtree_make.sh
