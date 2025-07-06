@@ -34,7 +34,6 @@ int main (int argc, char *argv[]) {
   srand48(myrand);    // initialize the random number generator
 
   // some constants
-  size_t const mindeg = MINIMUM_DEGREE;
   size_t const o_size = sizeof(data_t);
 
   // allocate and initialize our b-tree
@@ -147,9 +146,12 @@ void term_cb (void *vp) {
 
   fflush(stdout);
 
-  if ((ndx & 0xf) == 0) sched_yield();
-
   free(vp);
+
+  if ((ndx % 8) == 0) {
+    struct timespec req = { 0, 250000000 };
+    nanosleep(&req, NULL);
+  }
 }
 //
 // output data object
@@ -167,13 +169,20 @@ void walk_cb (rb_node_t *node) {
 
   fflush(stdout);
 
-  if ((ndx & 0xf) == 0) sched_yield();
+  if ((ndx % 8) == 0) {
+    struct timespec req = { 0, 250000000 };
+    nanosleep(&req, NULL);
+  }
 }
 //
 // begin tree termination
 //
 void term_tree (rb_tree_t *tree) {
   puts("\n---| tree termination |---\n");
+
+  struct timespec req = { 1, 0 };
+  nanosleep(&req, NULL);
+
   // initialize index used by tree walking callback
   ndx = 0L;
 
@@ -184,6 +193,10 @@ void term_tree (rb_tree_t *tree) {
 //
 void walk_tree (rb_tree_t *tree) {
   puts("\n---| walk tree |---\n");
+
+  struct timespec req = { 1, 0 };
+  nanosleep(&req, NULL);
+
   // initialize index used by tree walking callback
   ndx = 0L;
 
