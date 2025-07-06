@@ -34,7 +34,7 @@ sh rbtree_make.sh
 
 ---
 
-# RUN THE DEMO:
+# RUN THE DEMO
 In folder `rbtest` enter the following command:
 ```bash
 ./go_rbtest.sh
