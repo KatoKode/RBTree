@@ -43,13 +43,14 @@ rbtest/
 + makefile
 + go_rbtest.sh
 # CREATE THE DEMO WITH THE MAKE UTILITY:
-Run the following command combo in each folder, starting in folder `util/` and ending in folder `rbtest/`.
+Run the following command in the `Red-Black-Tree-main` folder:
 ```bash
-make clean; make
+sh rbtree_make.sh
 ```
 # RUN THE DEMO:
+In folder `rbtest` enter the following command:
 ```bash
-./go_btest.sh
+./go_rbtest.sh
 ```
 # THINGS TO KNOW:
 You can modify a couple defines in the C header file `main.h`:
