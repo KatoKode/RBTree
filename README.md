@@ -42,7 +42,7 @@ In folder `rbtest` enter the following command:
 
 ---
 
-# THINGS TO KNOW:
+# THINGS TO KNOW
 You can modify a couple defines in the C header file `main.h`:
 ```c
 #define DATA_COUNT    128
