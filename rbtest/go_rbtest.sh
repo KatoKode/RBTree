@@ -1,6 +1,5 @@
-# !/bin/sh
 #-------------------------------------------------------------------------------
-#   Assembly Language Implementation of a (Red-Black) RB-Tree
+#   Red-Black-Tree Implementation in x86_64 Assembly Language with C interface
 #   Copyright (C) 2025  J. McIntosh
 #
 #   This program is free software; you can redistribute it and/or modify
@@ -17,10 +16,7 @@
 #   with this program; if not, write to the Free Software Foundation, Inc.,
 #   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #-------------------------------------------------------------------------------
-# file:   go_btest.sh
-# author: J. McIntosh
-# brief:  run script for Red-Black-Tree demo program
-#-------------------------------------------------------------------------------
+# !/bin/sh
 #
 echo -e "\nRunning ./rbtest"
 rnd=`shuf -i 10000000-99999999 -n 1`
