@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-    Assembly Language Implementation of a (Red-Black) RB-Tree
+    Red-Black-Tree Implementation in x86_64 Assembly Language with C interface
     Copyright (C) 2025  J. McIntosh
 
     This program is free software; you can redistribute it and/or modify
@@ -22,11 +22,6 @@
 #include <pthread.h>
 #include "../rbtree/rbtree.h"
 #include "../util/util.h"
-/*------------------------------------------------------------------------------
-  file:    main.h
-  author:  J. McIntosh
-  brief:   Red-Black-Tree demo program
-------------------------------------------------------------------------------*/
 
 // defines you can modify
 #define DATA_COUNT    128
