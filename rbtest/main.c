@@ -60,7 +60,7 @@ int main (int argc, char *argv[]) {
       (void) snprintf(d->s, STR_LEN + 1, "%8.6f", d->d);
 
       // yield the CPU when dealing with duplicates
-      if ((x++ & 0x2) == 0L) sched_yield();
+      if ((x++ % 2L) == 0L) sched_yield();
 
       // search tree for duplicate data_t object
     } while ((rb_find(tree, (void const *)&da[i])) != NULL);
@@ -89,7 +89,7 @@ int main (int argc, char *argv[]) {
     }
 
     // yield the CPU
-    if ((n & 0x2) == 0L) sched_yield();
+    if ((n % 2L) == 0L) sched_yield();
   }
 
   // try to delete a data_t object that is not in the tree
@@ -147,11 +147,6 @@ void term_cb (void *vp) {
   fflush(stdout);
 
   free(vp);
-
-  if ((ndx % 8) == 0) {
-    struct timespec req = { 0, 250000000 };
-    nanosleep(&req, NULL);
-  }
 }
 //
 // output data object
@@ -168,20 +163,12 @@ void walk_cb (rb_node_t *node) {
   printf("\t\t\t%6lu:  d: %8.6lf  s: %8s\n", ndx++, d->d, d->s);
 
   fflush(stdout);
-
-  if ((ndx % 8) == 0) {
-    struct timespec req = { 0, 250000000 };
-    nanosleep(&req, NULL);
-  }
 }
 //
 // begin tree termination
 //
 void term_tree (rb_tree_t *tree) {
   puts("\n---| tree termination |---\n");
-
-  struct timespec req = { 1, 0 };
-  nanosleep(&req, NULL);
 
   // initialize index used by tree walking callback
   ndx = 0L;
@@ -193,9 +180,6 @@ void term_tree (rb_tree_t *tree) {
 //
 void walk_tree (rb_tree_t *tree) {
   puts("\n---| walk tree |---\n");
-
-  struct timespec req = { 1, 0 };
-  nanosleep(&req, NULL);
 
   // initialize index used by tree walking callback
   ndx = 0L;
