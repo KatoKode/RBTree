@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-    Assembly Language Implementation of a (Red-Black) RB-Tree
+    Red-Black-Tree Implementation in x86_64 Assembly Language with C interface
     Copyright (C) 2025  J. McIntosh
 
     This program is free software; you can redistribute it and/or modify
@@ -17,11 +17,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 ------------------------------------------------------------------------------*/
 #include "main.h"
-/*------------------------------------------------------------------------------
-  file:    main.c
-  author:  J. McIntosh
-  brief:   Red-Black-Tree demo program
-------------------------------------------------------------------------------*/
+
 int main (int argc, char *argv[]) {
 
   if (argc < 2) {
