@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-#   Assembly Language Implementation of a (Red-Black) RB-Tree
+#   Red-Black-Tree Implementation in x86_64 Assembly Language with C interface
 #   Copyright (C) 2025  J. McIntosh
 #
 #   This program is free software; you can redistribute it and/or modify
@@ -19,8 +19,8 @@
 # file: rbtest makefile
 #-------------------------------------------------------------------------------
 rbtest: main.o ../rbtree/librbtree.so ../util/libutil.so
-	gcc -g -m64 -march=x86-64 main.o ../rbtree/librbtree.so ../util/libutil.so -o rbtest
+	gcc -march=x86-64 -m64 main.o ../rbtree/librbtree.so ../util/libutil.so -o rbtest
 main.o: main.c
-	gcc -g -m64 -march=x86-64 -c main.c -o main.o
+	gcc -march=x86-64 -m64 -Wall -c main.c -o main.o
 clean:
 	rm -f rbtest main.o
