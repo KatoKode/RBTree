@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-    Assembly Language Implementation of a (Red-Black) RB-Tree
+    Red-Black-Tree Implementation in x86_64 Assembly Language with C interface
     Copyright (C) 2025  J. McIntosh
 
     This program is free software; you can redistribute it and/or modify
@@ -17,18 +17,10 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 ------------------------------------------------------------------------------*/
 #include "util.h"
-/*------------------------------------------------------------------------------
-  file:   util.c
-  author: J.McIntosh
-  brief:  utilities shared-library
-------------------------------------------------------------------------------*/
-
 //------------------------------------------------------------------------------
-// initLIBRARY
-void __attribute__ ((constructor)) initLibrary(void) {
-}
+// initRBTreeLibrary
+void __attribute__ ((constructor)) initRBTreeLibrary(void) {}
 //------------------------------------------------------------------------------
-// termLIBRARY
-void __attribute__ ((destructor)) termLibrary(void) {
-}
+// termRBTreeLibrary
+void __attribute__ ((destructor)) termRBTreeLibrary(void) {}
 
