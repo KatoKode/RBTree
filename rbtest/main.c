@@ -29,9 +29,6 @@ int main (int argc, char *argv[]) {
   size_t myrand = strtol(argv[1], NULL, 10);
   srand48(myrand);    // initialize the random number generator
 
-  // some constants
-  size_t const o_size = sizeof(data_t);
-
   // allocate and initialize our b-tree
   rb_tree_t *tree = rb_tree_alloc();
   rb_tree_init(tree, find_cb, nsrt_cb, term_cb, walk_cb);
