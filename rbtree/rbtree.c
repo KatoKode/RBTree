@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-    Assembly Language Implementation of a (Red-Black) RBTree
+    Red-Black-Tree Implementation in x86_64 Assembly Language with C interface
     Copyright (C) 2025  J. McIntosh
 
     This program is free software; you can redistribute it and/or modify
@@ -17,9 +17,3 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 ------------------------------------------------------------------------------*/
 #include "rbtree.h"
-/*------------------------------------------------------------------------------
-  file:   rbtree.c
-  author: J. McIntosh
-  brief:  red-black tree implementation
-------------------------------------------------------------------------------*/
-
