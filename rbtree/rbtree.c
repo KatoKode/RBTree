@@ -17,3 +17,9 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 ------------------------------------------------------------------------------*/
 #include "rbtree.h"
+//------------------------------------------------------------------------------
+// initRBTreeLibrary
+void __attribute__ ((constructor)) initRBTreeLibrary(void) {}
+//------------------------------------------------------------------------------
+// termRBTreeLibrary
+void __attribute__ ((destructor)) termRBTreeLibrary(void) {}
