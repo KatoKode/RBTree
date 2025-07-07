@@ -16,15 +16,12 @@
 #   with this program; if not, write to the Free Software Foundation, Inc.,
 #   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #-------------------------------------------------------------------------------
-# file:		makefile
-# author:	J. McIntosh
-# brief:	makefile for libutil.so
-#-------------------------------------------------------------------------------
+#
 libutil.so: memmove64.o util.o
-	gcc -z noexecstack -g -shared memmove64.o util.o -o libutil.so
+	gcc -march=x86-64 -m64 -z noexecstack -shared memmove64.o util.o -o libutil.so
 util.o: util.c
-	gcc -g -fPIC -c util.c -o util.o
+	gcc -march=x86-64 -m64 -fPIC -c util.c -o util.o
 memmove64.o: memmove64.asm
-	nasm -g -f elf64 memmove64.asm
+	nasm -f elf64 memmove64.asm
 clean:
 	rm -f libutil.so util.o memmove64.o
