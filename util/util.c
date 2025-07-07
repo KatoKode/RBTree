@@ -18,9 +18,9 @@
 ------------------------------------------------------------------------------*/
 #include "util.h"
 //------------------------------------------------------------------------------
-// initRBTreeLibrary
+// initUtilLibrary
 void __attribute__ ((constructor)) initUtilLibrary(void) {}
 //------------------------------------------------------------------------------
-// termRBTreeLibrary
+// termUtilLibrary
 void __attribute__ ((destructor)) termUtilLibrary(void) {}
 
