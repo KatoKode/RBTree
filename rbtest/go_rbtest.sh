@@ -19,10 +19,16 @@
 #-------------------------------------------------------------------------------
 # file:   go_btest.sh
 # author: J. McIntosh
-# brief:  run script for (Red-Black) RB-Tree demo program
+# brief:  run script for Red-Black-Tree demo program
 #-------------------------------------------------------------------------------
 #
+echo -e "\nRunning ./rbtest"
 rnd=`shuf -i 10000000-99999999 -n 1`
-./rbtest "${rnd}"
-
-
+./rbtest "${rnd}" > ./out.txt
+echo -e "\nOutput in file ./out.txt\n"
+read -p "View file ./out.txt (y, n): " YN
+case $YN in
+  'y'|'Y') less ./out.txt ;;
+  'n'|'N') echo -e "\nExiting\n" ;;
+  *) ;;
+esac
