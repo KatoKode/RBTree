@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-#   Assembly Language Implementation of a (Red-Black) RB-Tree
+#   Red-Black-Tree Implementation in x86_64 Assembly Language with C interface
 #   Copyright (C) 2025  J. McIntosh
 #
 #   This program is free software; you can redistribute it and/or modify
