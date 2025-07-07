@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-#   Assembly Language Implementation of a (Red-Black) RBTree
+#   Red-Black-Tree Implementation in x86_64 Assembly Language with C interface
 #   Copyright (C) 2025  J. McIntosh
 #
 #   This program is free software; you can redistribute it and/or modify
@@ -16,17 +16,13 @@
 #   with this program; if not, write to the Free Software Foundation, Inc.,
 #   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #-------------------------------------------------------------------------------
-#-------------------------------------------------------------------------------
-# file:   makefile
-# author: J. McIntosh
-# brief:  red-black tree implementation
-#-------------------------------------------------------------------------------
+#
 librbtree.so: rbtree_asm.o rbtree.o
-	gcc -g -z noexecstack -shared rbtree_asm.o rbtree.o -o librbtree.so
+	gcc -march=x86-64 -m64 -z noexecstack -shared rbtree_asm.o rbtree.o -o librbtree.so
 rbtree.o: rbtree.c
-				gcc -g -fPIC -c rbtree.c -o rbtree.o
+				gcc -march=x86-64 -m64 -Wall -fPIC -c rbtree.c -o rbtree.o
 rbtree_asm.o: rbtree.asm
-				nasm -g -f elf64 rbtree.asm -o rbtree_asm.o
+				nasm -f elf64 rbtree.asm -o rbtree_asm.o
 clean:
 	rm -f librbtree.so rbtree.o
 	rm -f rbtree_asm.o
