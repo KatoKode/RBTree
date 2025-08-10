@@ -50,7 +50,7 @@ You can modify a couple defines in the C header file `main.h`:
 ```
 Modifying these defines will change the behavior of the demo program.
 
-There are calls to `printf` in the `rbtree.asm` file.  They are for demo purposes only and can be removed or commented out.  The `printf` code sections are marked with comment lines: `BEGIN PRINTF`; and `END PRINTF`.  The format and text strings passed to `printf` are in the `.data` section of the `btree.asm` file.
+There are calls to `printf` in the `rbtree.asm` file.  They are for demo purposes only and can be removed or commented out.  The `printf` code sections are marked with comment lines: `BEGIN PRINTF`; and `END PRINTF`.  The format and text strings passed to `printf` are in the `.data` section of the `rbtree.asm` file.
 
 Have Fun!
 
