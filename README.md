@@ -10,9 +10,9 @@ by Jerry McIntosh
 ---
 
 # INTRODUCTION
-This is an Assembly Language implementation of a (Red-Black) RB-Tree.  The (Red-Black) RB-Tree is implemented as a shared-library with a C interface.  There is also a C demo program.
+This is an Assembly Language implementation of a Red-Black-Tree.  The Red-Black-Tree is implemented as a shared-library with a C interface.  There is also a C demo program.
 
-The (Red-Black) RB-Tree implementaton is based on the implementation found in:
+The Red-Black-Tree implementaton is based on the implementation found in:
 
 Introduction to Algorithms, 3rd ed.
 by Cormen, Leiserson, Rivest, and Stein
@@ -35,9 +35,9 @@ sh rbtree_make.sh
 ---
 
 # RUN THE DEMO
-In folder `rbtest` enter the following command:
+In folder `demo` enter the following command:
 ```bash
-./go_rbtest.sh
+./go_demo.sh
 ```
 
 ---
