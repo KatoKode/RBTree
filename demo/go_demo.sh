@@ -18,13 +18,15 @@
 #   with RBTREE; if not, write to the Free Software Foundation, Inc.,
 #   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #-------------------------------------------------------------------------------
-# file: demo makefile
-#-------------------------------------------------------------------------------
-demo: main.o ../rbtree/librbtree.so ../util/libutil.so
-	gcc -march=x86-64 -m64 main.o ../rbtree/librbtree.so ../util/libutil.so \
-		-o demo
-main.o: main.c
-	gcc -march=x86-64 -m64 -Wall -c main.c -o main.o
-.PHONY: clean
-clean:
-	rm -f demo main.o
+# !/bin/sh
+#
+echo -e "\nRunning ./demo"
+rnd=`shuf -i 10000000-99999999 -n 1`
+./demo "${rnd}" > ./out.txt
+echo -e "\nOutput in file ./out.txt\n"
+read -r -p "View file ./out.txt [Y/n]: " YN
+case ${YN:-Y} in
+  'y'|'Y') less ./out.txt ;;
+  'n'|'N') echo -e "\nExiting\n" ;;
+  *) ;;
+esac
