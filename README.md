@@ -1,8 +1,6 @@
 
 ---
 
-Just Another Armchair Programmer
-
 (Red-Black) RB-Tree Implementation in x86_64 Assembly Language with C interface
 
 by Jerry McIntosh
