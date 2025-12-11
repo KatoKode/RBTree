@@ -4,18 +4,18 @@
 ;
 ;   Copyright (C) 2025  J. McIntosh
 ;
-;   RBTREE is free software; you can redistribute it and/or modify
+;   This program is free software; you can redistribute it and/or modify
 ;   it under the terms of the GNU General Public License as published by
 ;   the Free Software Foundation; either version 2 of the License, or
 ;   (at your option) any later version.
 ;
-;   RBTREE is distributed in the hope that it will be useful,
+;   This program is distributed in the hope that it will be useful,
 ;   but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;   GNU General Public License for more details.
 ;
 ;   You should have received a copy of the GNU General Public License along
-;   with RBTREE; if not, write to the Free Software Foundation, Inc.,
+;   with this program; if not, write to the Free Software Foundation, Inc.,
 ;   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 ;-------------------------------------------------------------------------------
 ;
@@ -86,6 +86,8 @@ section .text
 ;
       static rb_transplant
 rb_transplant:
+;prologue
+      push      r12
 ; BEGIN PRINTF
 ; printf(fmt, hdr11);
       push      rdx
@@ -120,6 +122,8 @@ rb_transplant:
 .cont:
 ; node_o->parent = node_n->parent;
       mov       QWORD [rdx + rb_node.parent], rcx
+; epilogue
+      pop       r12
       ret
 ;
 ;-------------------------------------------------------------------------------
@@ -135,6 +139,8 @@ rb_transplant:
 ;
       static rb_tree_minimum
 rb_tree_minimum:
+; prologue
+      push      r12
 ; BEGIN PRINTF
 ; printf(fmt, hdr14);
       push      rsi
@@ -157,6 +163,8 @@ rb_tree_minimum:
 .return:
 ; return node;
       mov       rax, rsi
+; epilogue
+      pop       r12
       ret
 ;
 ;-------------------------------------------------------------------------------
@@ -172,6 +180,8 @@ rb_tree_minimum:
 ;
       static rb_left_rotate
 rb_left_rotate:
+; prologue
+      push      r12
 ; BEGIN PRINTF
 ; printf(fmt, hdr07);
       push      rsi
@@ -219,6 +229,8 @@ rb_left_rotate:
       mov       QWORD [rax + rb_node.left], rsi
 ;  node->parent = node_y;
       mov       QWORD [rsi + rb_node.parent], rax
+; epilogue
+      pop       r12
       ret
 ;
 ;-------------------------------------------------------------------------------
@@ -234,6 +246,8 @@ rb_left_rotate:
 ;
       static rb_right_rotate
 rb_right_rotate:
+; prologue
+      push      r12
 ; BEGIN PRINTF
 ; printf(fmt, hdr09);
       push      rsi
@@ -281,6 +295,8 @@ rb_right_rotate:
       mov       QWORD [rax + rb_node.right], rsi
 ; node->parent = node_y;
       mov       QWORD [rsi + rb_node.parent], rax
+; epilogue
+      pop       r12
       ret
 ;
 ;-------------------------------------------------------------------------------
@@ -306,20 +322,17 @@ rb_delete_fixup:
       push      rbp
       mov       rbp, rsp
       sub       rsp, 24
+      push      r12
 ; QWORD [rbp - 8] = rdi (tree)
       mov       QWORD [rbp - 8], rdi
 ; QWORD [rbp - 16] = rsi (node)
       mov       QWORD [rbp - 16], rsi
 ; BEGIN PRINTF
 ; printf(fmt, hdr02);
-      push      rsi
-      push      rdi
       xor       rax, rax
       mov       rdi, fmt
       mov       rsi, hdr02
       ALIGN_STACK_AND_CALL r12, printf, wrt, ..plt
-      pop       rdi
-      pop       rsi
 ; END PRINTF
 ; while (node != tree->root && node->color == RB_BLACK) {
 .loop:
@@ -503,6 +516,7 @@ rb_delete_fixup:
       mov       rsi, QWORD [rbp - 16]
       mov       BYTE [rsi + rb_node.color], dl
 .epilogue:
+      pop       r12
       mov       rsp, rbp
       pop       rbp
       ret
@@ -685,7 +699,7 @@ rb_delete:
 ;
 ; return:
 ;
-;   rax = &(matched node) | &null_node
+;   rax = &matched_node | &null_node
 ;
 ; stack:
 ;
@@ -718,7 +732,7 @@ rb_find_rcrs:
       mov       rdx, QWORD [rbp - 24]
 ; END PRINTF
 ; if (node == &null_node || find_cb(node->data, key) == 0) return node
-      mov       rax, null_node wrt ..sym
+      mov       rax, null_node
       cmp       rdi, rax
       je        .epilogue
       mov       rdi, QWORD [rdi + rb_node.data]
@@ -729,11 +743,9 @@ rb_find_rcrs:
       jz        .match
       mov       rdi, QWORD [rbp - 8]
       mov       rdi, QWORD [rdi + rb_node.left]
-      test      eax, eax
-      js        .continue
-      mov       rdi, QWORD [rbp - 8]
+      js        .go_left
       mov       rdi, QWORD [rdi + rb_node.right]
-.continue:
+.go_left:
       mov       rsi, QWORD [rbp - 16]
       mov       rdx, QWORD [rbp - 24]
       call      rb_find_rcrs
@@ -763,6 +775,8 @@ rb_find_rcrs:
 ;
       global rb_find:function
 rb_find:
+; prologue
+      push      r12
 ; BEGIN PRINTF
 ; printf(fmt, hdr03);
       push      rsi
@@ -779,12 +793,13 @@ rb_find:
       mov       rsi, QWORD [rdi + rb_tree.find_cb]
       mov       rdi, QWORD [rdi + rb_tree.root]
       call      rb_find_rcrs
-      mov       rdx, null_node wrt ..sym
+      mov       rdx, null_node
       cmp       rax, rdx
-      jne       .return
+      jne       .epilogue
 ;   return NULL;
       xor       rax, rax
-.return:
+.epilogue:
+      pop       r12
       ret
 ;
 ;-------------------------------------------------------------------------------
@@ -807,7 +822,10 @@ rb_find:
 ;
       global rb_tree_init:function
 rb_tree_init:
-      mov       rax, null_node wrt ..sym
+; prologue
+      push      r12
+; initialize tree structure
+      mov       rax, null_node
       mov       QWORD [rdi + rb_tree.nil], rax
       mov       QWORD [rdi + rb_tree.root], rax
       mov       QWORD [rdi + rb_tree.find_cb], rsi
@@ -821,6 +839,8 @@ rb_tree_init:
       mov       rsi, hdr13
       ALIGN_STACK_AND_CALL r12, printf, wrt, ..plt
 ; END PRINTF
+; epilogue
+      pop       r12
       ret
 ;
 ;-------------------------------------------------------------------------------
@@ -846,6 +866,7 @@ rb_insert_fixup:
       push      rbp
       mov       rbp, rsp
       sub       rsp, 24
+      push      r12
 ; QWORD [rbp - 8] = rdi (tree)
       mov       QWORD [rbp - 8], rdi
 ; QWORD [rbp - 16] = rsi (n)
@@ -984,6 +1005,7 @@ rb_insert_fixup:
       mov       rdi, QWORD [rdi + rb_tree.root]
       mov       BYTE [rdi + rb_node.color], dl
 ; epilogue
+      pop       r12
       mov       rsp, rbp
       pop       rbp
       ret
@@ -1019,14 +1041,12 @@ rb_insert:
       mov       QWORD [rbp - 16], rsi
 ; BEGIN PRINTF
 ; printf(fmt, hdr05);
-      push      rsi
-      push      rdi
       xor       rax, rax
       mov       rdi, fmt
       mov       rsi, hdr05
       ALIGN_STACK_AND_CALL r12, printf, wrt, ..plt
-      pop       rdi
-      pop       rsi
+      mov       rdi, QWORD [rbp - 8]
+      mov       rsi, QWORD [rbp - 16]
 ; END PRINTF
 ; rb_node_t *node_x = tree->root
       mov       rax, QWORD [rdi + rb_tree.root]
@@ -1037,10 +1057,10 @@ rb_insert:
 ; while (node_x != tree->nil) {
 .loop:
       cmp       rax, rcx
-      je        .cont_1
+      je        .end_while
 ;   node_y = node_x;
       mov       QWORD [rbp - 32], rax
-;   if (tree->nsrt_cb(n->data, node_x->data) < 0)
+;   if (tree->nsrt_cb(node->data, node_x->data) < 0)
       mov       rdx, [rdi + rb_tree.nsrt_cb]
       mov       rdi, QWORD [rbp - 16]
       mov       rdi, [rdi + rb_node.data]
@@ -1063,7 +1083,7 @@ rb_insert:
       mov       rcx, QWORD [rdi + rb_tree.nil]
       jmp       .loop
 ; }
-.cont_1:
+.end_while:
 ; node->parent = node_y;
       mov       rcx, QWORD [rbp - 32]
       mov       rsi, QWORD [rbp - 16]
@@ -1127,6 +1147,9 @@ rb_insert:
 ;
       global rb_node_init:function
 rb_node_init:
+; prologue
+      push      r12
+; initialize node
       xor       rax, rax
       mov       QWORD [rdi + rb_node.parent], rax
       mov       QWORD [rdi + rb_node.left], rax
@@ -1141,6 +1164,8 @@ rb_node_init:
       mov       rsi, hdr08
       ALIGN_STACK_AND_CALL r12, printf, wrt, ..plt
 ; END PRINTF
+; epilogue
+      pop       r12
       ret
 ;
 ;-------------------------------------------------------------------------------
@@ -1164,7 +1189,7 @@ rb_term_rcrs:
       push      rbp
       mov       rbp, rsp
       sub       rsp, 16
-      push      12
+      push      r12
 ; QWORD [rbp - 8] = rdi (node)
       mov       QWORD [rbp - 8], rdi
 ; QWORD [rbp - 16] = rsi (term_cb)
@@ -1181,7 +1206,7 @@ rb_term_rcrs:
       pop       rsi
 ; END PRINTF
 ; if (n == &null_node) return
-      mov       rax, null_node wrt ..sym
+      mov       rax, null_node
       cmp       rdi, rax
       je        .epilogue
 ; rb_term_rcrs(node->left, term_cb)
@@ -1219,6 +1244,8 @@ rb_term_rcrs:
 ;-------------------------------------------------------------------------------
       global rb_tree_term:function
 rb_tree_term:
+; prologue
+      push      r12
 ; BEGIN PRINTF
 ; printf(fmt, hdr15);
       push      rdi
@@ -1232,6 +1259,8 @@ rb_tree_term:
       mov       rsi, QWORD [rdi + rb_tree.term_cb]
       mov       rdi, QWORD [rdi + rb_tree.root]
       call      rb_term_rcrs
+; epilogue
+      pop       r12
       ret
 ;
 ;-------------------------------------------------------------------------------
@@ -1272,7 +1301,7 @@ rb_traverse:
       pop       rsi
 ; END PRINTF
 ; if (node == &null_node) return
-      mov       rax, null_node wrt ..sym
+      mov       rax, null_node
       cmp       rdi, rax
       je        .epilogue
 ; rb_traverse(node->left)
@@ -1307,6 +1336,8 @@ rb_traverse:
 ;
       global rb_walk:function
 rb_walk:
+; prologue
+      push      r12
 ; BEGIN PRINTF
 ; printf(fmt, hdr16);
       push      rdi
@@ -1319,5 +1350,7 @@ rb_walk:
       mov       rsi, QWORD [rdi + rb_tree.trav_cb]
       mov       rdi, QWORD [rdi + rb_tree.root]
       call      rb_traverse
+; epilogue
+      pop       r12
       ret
 %endif
