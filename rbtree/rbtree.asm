@@ -24,9 +24,9 @@
 ;
 ;-------------------------------------------------------------------------------
 ;
+extern calloc
 extern free
-extern printf
-extern null_node
+extern get_null_node
 ;
 ;-------------------------------------------------------------------------------
 ;
@@ -51,26 +51,33 @@ ALIGN_MASK    EQU     ~(ALIGN_WITH)
 ;
 %include "rbtree.inc"
 ;
-section .data
-      hdr01       db      "rb_delete",0
-      hdr02       db      "rb_delete_fixup",0
-      hdr03       db      "rb_find",0
-      hdr04       db      "rb_find_rcrs",0
-      hdr05       db      "rb_insert",0
-      hdr06       db      "rb_insert_fixup",0 
-      hdr07       db      "rb_left_rotate",0
-      hdr08       db      "rb_node_init",0
-      hdr09       db      "rb_right_rotate",0
-      hdr10       db      "rb_term_rcrs",0
-      hdr11       db      "rb_transplant",0
-      hdr12       db      "rb_traverse",0
-      hdr13       db      "rb_tree_init",0
-      hdr14       db      "rb_tree_minimum",0
-      hdr15       db      "rb_tree_term",0
-      hdr16       db      "rb_walk",0
-      fmt         db      "---| %s |---",10,0
-;
 section .text
+;
+;-------------------------------------------------------------------------------
+; C definition:
+;
+;   rb_node_t * rb_tree_minimum (rb_tree_t *tree, rb_node_t *node);
+;
+; param:
+;
+;   rdi = tree
+;   rsi = node
+;-------------------------------------------------------------------------------
+;
+      global rb_tree_minimum:function
+rb_tree_minimum:
+; while (node->left != tree->nil)
+      mov       rax, QWORD [rdi + rb_tree.nil]    ; rax = tree->nil
+.loop:
+      cmp       QWORD [rsi + rb_node.left], rax
+      je        .return
+;   node = node->left;
+      mov       rsi, QWORD [rsi + rb_node.left]
+      jmp       .loop
+.return:
+; return node;
+      mov       rax, rsi
+      ret
 ;
 ;-------------------------------------------------------------------------------
 ; C definition:
@@ -86,223 +93,34 @@ section .text
 ;
       static rb_transplant
 rb_transplant:
-;prologue
-      push      r12
-; BEGIN PRINTF
-; printf(fmt, hdr11);
-      push      rdx
-      push      rsi
-      push      rdi
-      xor       rax, rax
-      mov       rdi, fmt
-      mov       rsi, hdr11
-      ALIGN_STACK_AND_CALL r12, printf, wrt, ..plt
-      pop       rdi
-      pop       rsi
-      pop       rdx
-; END PRINTF
 ; if (node_n->parent == tree->nil)
-      mov       rcx, QWORD [rdi + rb_tree.nil]
-      cmp       QWORD [rsi + rb_node.parent], rcx
+      mov       rax, QWORD [rdi + rb_tree.nil]      ; rax = tree->nil
+      cmp       QWORD [rsi + rb_node.parent], rax
       jne       .else_if
 ;   tree->root = node_o;
       mov       QWORD [rdi + rb_tree.root], rdx
-      jmp       .cont
+      jmp       .end_if_else
 .else_if:
 ; else if (node_n == node_n->parent->left)
-      mov       rcx, QWORD [rsi + rb_node.parent]
-      cmp       rsi, QWORD [rcx + rb_node.left]
+      mov       rax, QWORD [rsi + rb_node.parent]   ; rax = node_n->parent
+      cmp       rsi, QWORD [rax + rb_node.left]
       jne       .else
 ;   node_n->parent->left = node_o;
-      mov       QWORD [rcx + rb_node.left], rdx
-      jmp       .cont
+      mov       QWORD [rax + rb_node.left], rdx
+      jmp       .end_if_else
 .else:
 ; else node_n->parent->right = node_o;
-      mov       QWORD [rcx + rb_node.right], rdx
-.cont:
+      mov       QWORD [rax + rb_node.right], rdx
+.end_if_else:
 ; node_o->parent = node_n->parent;
-      mov       QWORD [rdx + rb_node.parent], rcx
-; epilogue
-      pop       r12
+      mov       rax, QWORD [rsi + rb_node.parent]   ; rax = node_n->parent
+      mov       QWORD [rdx + rb_node.parent], rax
       ret
 ;
 ;-------------------------------------------------------------------------------
 ; C definition:
 ;
-;   rb_node_t * rb_tree_minimum (rb_tree_t *tree, rb_node_t *node);
-;
-; param:
-;
-;   rdi = tree
-;   rsi = node
-;-------------------------------------------------------------------------------
-;
-      static rb_tree_minimum
-rb_tree_minimum:
-; prologue
-      push      r12
-; BEGIN PRINTF
-; printf(fmt, hdr14);
-      push      rsi
-      push      rdi
-      xor       rax, rax
-      mov       rdi, fmt
-      mov       rsi, hdr14
-      ALIGN_STACK_AND_CALL r12, printf, wrt, ..plt
-      pop       rdi
-      pop       rsi
-; END PRINTF
-; while (node->left != tree->nil)
-      mov       rax, QWORD [rdi + rb_tree.nil]
-.loop:
-      cmp       QWORD [rsi + rb_node.left], rax
-      je        .return
-;   node = node->left;
-      mov       rsi, QWORD [rsi + rb_node.left]
-      jmp       .loop
-.return:
-; return node;
-      mov       rax, rsi
-; epilogue
-      pop       r12
-      ret
-;
-;-------------------------------------------------------------------------------
-; C definition:
-;
-;   void rb_left_rotate (rb_tree_t *tree, rb_node_t *node);
-;
-; param:
-;
-;   rdi = tree
-;   rsi = node
-;-------------------------------------------------------------------------------
-;
-      static rb_left_rotate
-rb_left_rotate:
-; prologue
-      push      r12
-; BEGIN PRINTF
-; printf(fmt, hdr07);
-      push      rsi
-      push      rdi
-      xor       rax, rax
-      mov       rdi, fmt
-      mov       rsi, hdr07
-      ALIGN_STACK_AND_CALL r12, printf, wrt, ..plt
-      pop       rdi
-      pop       rsi
-; END PRINTF
-; rb_node_t *node_y = node->right;
-      mov       rax, QWORD [rsi + rb_node.right]
-; node->right = node_y->left;
-      mov       rcx, QWORD [rax + rb_node.left]
-      mov       QWORD [rsi + rb_node.right], rcx
-; if (node_y->left != tree->nil)
-      mov       rdx, QWORD [rdi + rb_tree.nil]
-      cmp       rcx, rdx
-      je        .end_if
-;   node_y->left->parent = node;
-      mov       QWORD [rcx + rb_node.parent], rsi
-.end_if:
-; node_y->parent = node->parent;
-      mov       rcx, QWORD [rsi + rb_node.parent]
-      mov       QWORD [rax + rb_node.parent], rcx
-; if (node->parent == tree->nil)
-      cmp       rcx, rdx
-      jne       .else_if
-;   tree->root = node_y;
-      mov       QWORD [rdi + rb_tree.root], rax
-      jmp       .end_if_2
-.else_if:
-; else if (node == node->parent->left)
-      cmp       rsi, QWORD [rcx + rb_node.left]
-      jne       .else
-;   node->parent->left = node_y;
-      mov       QWORD [rcx + rb_node.left], rax
-      jmp       .end_if_2
-.else:
-;  else node->parent->right = node_y;
-      mov       QWORD [rcx + rb_node.right], rax
-.end_if_2:
-;  node_y->left = node;
-      mov       QWORD [rax + rb_node.left], rsi
-;  node->parent = node_y;
-      mov       QWORD [rsi + rb_node.parent], rax
-; epilogue
-      pop       r12
-      ret
-;
-;-------------------------------------------------------------------------------
-; C definition:
-;
-;   void rb_right_rotate (rb_tree_t *tree, rb_node_t *node);
-;
-; param:
-;
-;   rdi = tree
-;   rsi = node
-;-------------------------------------------------------------------------------
-;
-      static rb_right_rotate
-rb_right_rotate:
-; prologue
-      push      r12
-; BEGIN PRINTF
-; printf(fmt, hdr09);
-      push      rsi
-      push      rdi
-      xor       rax, rax
-      mov       rdi, fmt
-      mov       rsi, hdr09
-      ALIGN_STACK_AND_CALL r12, printf, wrt, ..plt
-      pop       rdi
-      pop       rsi
-; END PRINTF
-; rb_node_t *node_y = node->left;
-      mov       rax, QWORD [rsi + rb_node.left]
-; node->left = node_y->right;
-      mov       rcx, QWORD [rax + rb_node.right]
-      mov       QWORD [rsi + rb_node.left], rcx
-; if (node_y->right != tree->nil)
-      mov       rdx, QWORD [rdi + rb_tree.nil]
-      cmp       rcx, rdx
-      je        .end_if
-;   node_y->right->parent = node;
-      mov       QWORD [rcx + rb_node.parent], rsi
-.end_if:
-; node_y->parent = node->parent;
-      mov       rcx, QWORD [rsi + rb_node.parent]
-      mov       QWORD [rax + rb_node.parent], rcx
-; if (node->parent == tree->nil)
-      cmp       rcx, rdx
-      jne       .else_if
-;   tree->root = node_y;
-      mov       QWORD [rdi + rb_tree.root], rax
-      jmp       .end_if_2
-.else_if:
-; else if (node == node->parent->right)
-      cmp       rsi, QWORD [rcx + rb_node.right]
-      jne       .else
-;   node->parent->right = node_y;
-      mov       QWORD [rcx + rb_node.right], rax
-      jmp       .end_if_2
-.else:
-; else node->parent->left = node_y;
-      mov       QWORD [rcx + rb_node.left], rax
-.end_if_2:
-; node_y->right = node;
-      mov       QWORD [rax + rb_node.right], rsi
-; node->parent = node_y;
-      mov       QWORD [rsi + rb_node.parent], rax
-; epilogue
-      pop       r12
-      ret
-;
-;-------------------------------------------------------------------------------
-; C definition:
-;
-;   void rb_delete_fixup (rb_tree_t *tree, rb_node_t *n);
+;   void rb_delete_fixup (rb_tree_t *tree, rb_node_t *node);
 ;
 ; param:
 ;
@@ -314,6 +132,7 @@ rb_right_rotate:
 ;   QWORD [rbp - 8]   = rdi (tree)
 ;   QWORD [rbp - 16]  = rsi (node)
 ;   QWORD [rbp - 24]  = (rb_node_t *node_w)
+;   QWORD [rbp - 32]  = rbx (callee saved)
 ;-------------------------------------------------------------------------------
 ;
       static rb_delete_fixup
@@ -321,202 +140,219 @@ rb_delete_fixup:
 ; prologue
       push      rbp
       mov       rbp, rsp
-      sub       rsp, 24
-      push      r12
-; QWORD [rbp - 8] = rdi (tree)
+      sub       rsp, 40
       mov       QWORD [rbp - 8], rdi
-; QWORD [rbp - 16] = rsi (node)
       mov       QWORD [rbp - 16], rsi
-; BEGIN PRINTF
-; printf(fmt, hdr02);
-      xor       rax, rax
-      mov       rdi, fmt
-      mov       rsi, hdr02
-      ALIGN_STACK_AND_CALL r12, printf, wrt, ..plt
-; END PRINTF
+      mov       QWORD [rbp - 32], rbx
+; rb_node_t *node_w = tree->nil;
+      mov       rax, QWORD [rdi + rb_tree.nil]    ; rax = tree->nil
+      mov       QWORD [rbp - 24], rax
 ; while (node != tree->root && node->color == RB_BLACK) {
-.loop:
-      mov       rdi, QWORD [rbp - 8]
-      mov       rsi, QWORD [rbp - 16]
+.while_loop:
+      mov       rdi, QWORD [rbp - 8]              ; rdi = tree
+      mov       rsi, QWORD [rbp - 16]             ; rsi = node
       cmp       rsi, QWORD [rdi + rb_tree.root]
-      je        .epilogue
-      xor       edx, edx
-      mov       dl, BYTE [rsi + rb_node.color]
-      cmp       dl, BYTE RB_BLACK
-      jne       .epilogue
+      je        .end_while
+      mov       edx, DWORD [rsi + rb_node.color]
+      cmp       edx, RB_BLACK
+      jne       .end_while
 ;   if (node == node->parent->left) {
-      mov       rcx, QWORD [rsi + rb_node.parent]
-      cmp       rsi, QWORD [rcx + rb_node.left]
+      mov       rbx, QWORD [rsi + rb_node.parent] ; rbx = node->parent
+      cmp       rsi, QWORD [rbx + rb_node.left]
       jne       .else_1
 ;     node_w = node->parent->right;
-      mov       rax, QWORD [rcx + rb_node.right]
-      mov       QWORD [rbp - 24], rax
+      mov       rax, QWORD [rbx + rb_node.right]  ; rax = node->parent->right
+      mov       QWORD [rbp - 24], rax             ; rax = node_w
 ;     if (node_w->color == RB_RED) {
-      mov       dl, BYTE [rax + rb_node.color]
-      cmp       dl, BYTE RB_RED
+      mov       edx, DWORD [rax + rb_node.color]
+      cmp       edx, RB_RED
       jne       .end_if_1
 ;       node_w->color = RB_BLACK;
-      mov       dl, RB_BLACK
-      mov       BYTE [rax + rb_node.color], dl
-;       node_n->parent->color = RB_RED;
-      mov       dl, RB_RED
-      mov       BYTE [rcx + rb_node.color], dl
-;       left_rotate(tree, node->parent);
-      mov       rsi, rcx
+      mov       edx, RB_BLACK
+      mov       DWORD [rax + rb_node.color], edx
+;       node->parent->color = RB_RED;
+      mov       edx, RB_RED
+      mov       DWORD [rbx + rb_node.color], edx
+;       rb_left_rotate(tree, node->parent);
+      mov       rdi, QWORD [rbp - 8]              ; rdi = tree
+      mov       rsi, rbx                          ; rsi = node->parent
       call      rb_left_rotate
 ;       node_w = node->parent->right;
-      mov       rsi, QWORD [rbp - 16]
-      mov       rcx, QWORD [rsi + rb_node.parent]
-      mov       rax, QWORD [rcx + rb_node.right]
+      mov       rax, QWORD [rbp - 16]             ; rax = node
+      mov       rbx, QWORD [rax + rb_node.parent] ; rbx = node->parent
+      mov       rax, QWORD [rbx + rb_node.right]  ; rax = node->parent->right
       mov       QWORD [rbp - 24], rax
 .end_if_1:
 ;     }
 ;     if (node_w->left->color == RB_BLACK && node_w->right->color == RB_BLACK) {
-      mov       dl, BYTE RB_BLACK
-      mov       rcx, QWORD [rax + rb_node.left]
-      cmp       BYTE [rcx + rb_node.color], dl
+      mov       edx, RB_BLACK
+      mov       rbx, QWORD [rbp - 24]             ; rbx = node_w
+      mov       rax, QWORD [rbx + rb_node.left]   ; rax = node_w->left
+      cmp       DWORD [rax + rb_node.color], edx
       jne       .else_2
-      mov       rcx, QWORD [rax + rb_node.right]
-      cmp       BYTE [rcx + rb_node.color], dl
+      mov       rax, QWORD [rbx + rb_node.right]  ; rax = node_w->right
+      cmp       DWORD [rax + rb_node.color], edx
       jne       .else_2
 ;       node_w->color = RB_RED;
-      mov       dl, BYTE RB_RED
-      mov       BYTE [rax + rb_node.color], dl
+      mov       edx, RB_RED
+      mov       DWORD [rbx + rb_node.color], edx
 ;       node = node->parent;
-      mov       rsi, QWORD [rsi + rb_node.parent]
-      mov       QWORD [rbp - 16], rsi
-      jmp       .loop
+      mov       rbx, QWORD [rbp - 16]             ; rbx = node
+      mov       rax, QWORD [rbx + rb_node.parent] ; rax = node->parent
+      mov       QWORD [rbp - 16], rax
+      jmp       .while_loop
 .else_2:
 ;     } else {
 ;       if (node_w->right->color == RB_BLACK) {
-      mov       dl, BYTE RB_BLACK
-      mov       rcx, QWORD [rax + rb_node.right]
-      cmp       BYTE [rcx + rb_node.color], dl
+      mov       edx, RB_BLACK
+      mov       rbx, QWORD [rbp - 24]             ; rbx = node_w
+      mov       rax, QWORD [rbx + rb_node.right]  ; rax = node_w->right
+      cmp       DWORD [rax + rb_node.color], edx
       jne       .end_if_2
 ;         node_w->left->color = RB_BLACK;
-      mov       rcx, QWORD [rax + rb_node.left]
-      mov       BYTE [rcx + rb_node.color], dl
+      mov       rax, QWORD [rbx + rb_node.left]   ; rax = node_w->left
+      mov       DWORD [rax + rb_node.color], edx
 ;         node_w->color = RB_RED;
-      mov       dl, BYTE RB_RED
-      mov       BYTE [rax + rb_node.color], dl
-;         right_rotate(tree, node_w);
-      mov       rdi, QWORD [rbp - 8]
-      mov       rsi, rax
+      mov       edx, RB_RED
+      mov       DWORD [rbx + rb_node.color], edx
+;         rb_right_rotate(tree, node_w);
+      mov       rdi, QWORD [rbp - 8]              ; rdi = tree
+      mov       rsi, rbx                          ; rsi = node_w
       call      rb_right_rotate
 ;         node_w = node->parent->right;
-      mov       rsi, QWORD [rbp - 16]
-      mov       rcx, QWORD [rsi + rb_node.parent]
-      mov       rax, QWORD [rcx + rb_node.right]
-      mov       QWORD [rbp - 24], rax
+      mov       rax, QWORD [rbp - 16]             ; rax = node
+      mov       rbx, QWORD [rax + rb_node.parent] ; rbx = node->parent
+      mov       rax, QWORD [rbx + rb_node.right]  ; rax = node->parent->right
+      mov       QWORD [rbp - 24], rax             ; rax = node_w
 .end_if_2:
 ;       }
 ;       node_w->color = node->parent->color;
-      mov       rcx, QWORD [rsi + rb_node.parent]
-      mov       dl, BYTE [rcx + rb_node.color]
-      mov       BYTE [rax + rb_node.color], dl
+      mov       rbx, QWORD [rbp - 16]             ; rbx = node
+      mov       rax, QWORD [rbx + rb_node.parent] ; rax = node->parent
+      mov       edx, DWORD [rax + rb_node.color]  ; edx = node->parent->color
+      mov       rbx, QWORD [rbp - 24]             ; rbx = node_w
+      mov       DWORD [rbx + rb_node.color], edx
 ;       node->parent->color = RB_BLACK;
-      mov       dl, BYTE RB_BLACK
-      mov       BYTE [rcx + rb_node.color], dl
-;       left_rotate(tree, node->parent);
-      mov       rdi, QWORD [rbp - 8]
-      mov       rsi, rcx
+      mov       edx, RB_BLACK
+      mov       DWORD [rax + rb_node.color], edx
+;       node_w->right->color = RB_BLACK;
+      mov       rax, QWORD [rbx + rb_node.right]   ; rax = node_w->right
+      mov       DWORD [rax + rb_node.color], edx
+;       rb_left_rotate(tree, node->parent);
+      mov       rdi, QWORD [rbp - 8]              ; rdi = tree
+      mov       rbx, QWORD [rbp - 16]             ; rbx = node
+      mov       rsi, QWORD [rbx + rb_node.parent] ; rsi = node->parent
       call      rb_left_rotate
 ;       node = tree->root;
-      mov       rdi, QWORD [rbp - 8]
-      mov       rsi, QWORD [rdi + rb_tree.root]
-      mov       QWORD [rbp - 16], rsi
-      jmp       .loop
+      mov       rdi, QWORD [rbp - 8]              ; rdi = tree
+      mov       rax, QWORD [rdi + rb_tree.root]   ; rax = tree->root
+      mov       QWORD [rbp - 16], rax
+      jmp       .while_loop
 ;     }
 .else_1:
 ;   } else {
 ;     node_w = node->parent->left;
-      mov       rax, QWORD [rcx + rb_node.left]
-      mov       QWORD [rbp - 24], rax
+      mov       rax, QWORD [rbp - 16]             ; rax = node
+      mov       rbx, QWORD [rax + rb_node.parent] ; rbx = node->parent
+      mov       rax, QWORD [rbx + rb_node.left]   ; rax = node->parent->left
+      mov       QWORD [rbp - 24], rax             ; rax = node_w
 ;     if (node_w->color == RB_RED) {
-      mov       dl, BYTE [rax + rb_node.color]
-      cmp       dl, BYTE RB_RED
+      mov       edx, RB_RED
+      cmp       DWORD [rax + rb_node.color], edx
       jne       .end_if_3
 ;       node_w->color = RB_BLACK;
-      mov       dl, BYTE RB_BLACK
-      mov       BYTE [rax + rb_node.color], dl
+      mov       edx, RB_BLACK
+      mov       DWORD [rax + rb_node.color], edx
 ;       node->parent->color = RB_RED;
-      mov       dl, BYTE RB_RED
-      mov       BYTE [rcx + rb_node.color], dl
-;       right_rotate(tree, node->parent);
-      mov       rdi, QWORD [rbp - 8]
-      mov       rsi, rcx
+      mov       rbx, QWORD [rbp - 16]             ; rbx = node
+      mov       rax, QWORD [rbx + rb_node.parent] ; rax = node->parent
+      mov       edx, RB_RED
+      mov       DWORD [rax + rb_node.color], edx
+;       rb_right_rotate(tree, node->parent);
+      mov       rdi, QWORD [rbp - 8]              ; rdi = tree
+      mov       rsi, rax                          ; rsi = node->parent
       call      rb_right_rotate
 ;       node_w = node->parent->left;
-      mov       rsi, QWORD [rbp - 16]
-      mov       rcx, QWORD [rsi + rb_node.parent]
-      mov       rax, QWORD [rcx + rb_node.left]
+      mov       rax, QWORD [rbp - 16]             ; rax = node
+      mov       rbx, QWORD [rax + rb_node.parent] ; rbx = node->parent
+      mov       rax, QWORD [rbx + rb_node.left]   ; rax = node->parent->left
       mov       QWORD [rbp - 24], rax
 .end_if_3:
 ;     }
 ;     if (node_w->right->color == RB_BLACK && node_w->left->color == RB_BLACK) {
-      mov       dl, BYTE RB_BLACK
-      mov       rcx, QWORD [rax + rb_node.right]
-      cmp       BYTE [rcx + rb_node.color], dl
+      mov       edx, RB_BLACK                     ; edx = RB_BLACK
+      mov       rbx, QWORD [rbp - 24]             ; rbx = node_w
+      mov       rax, QWORD [rbx + rb_node.right]  ; rax = node_w->right
+      cmp       DWORD [rax + rb_node.color], edx
       jne       .else_3
-      mov       rcx, QWORD [rax + rb_node.left]
-      cmp       BYTE [rcx + rb_node.color], dl
+      mov       rax, QWORD [rbx + rb_node.left]   ; rax = node_w->left
+      cmp       DWORD [rax + rb_node.color], edx
       jne       .else_3
 ;       node_w->color = RB_RED;
-      mov       dl, BYTE RB_RED
-      mov       BYTE [rax + rb_node.color], dl
+      mov       edx, RB_RED                       ; edx = RB_RED
+      mov       DWORD [rbx + rb_node.color], edx
 ;       node = node->parent;
-      mov       rsi, QWORD [rsi + rb_node.parent]
-      mov       QWORD [rbp - 16], rsi
-      jmp       .loop
+      mov       rbx, QWORD [rbp - 16]             ; rbx = node
+      mov       rax, QWORD [rbx + rb_node.parent] ; rax = node->parent
+      mov       QWORD [rbp - 16], rax             ; rax = node
+      jmp       .while_loop
 .else_3:
 ;     } else {
 ;       if (node_w->left->color == RB_BLACK) {
-      mov       dl, BYTE RB_BLACK
-      mov       rcx, QWORD [rax + rb_node.left]
-      cmp       BYTE [rcx + rb_node.color], dl
+      mov       edx, RB_BLACK                     ; edx = RB_BLACK
+      mov       rbx, QWORD [rbp - 24]             ; rbx = node_w
+      mov       rax, QWORD [rbx + rb_node.left]   ; rax = node_w->left
+      cmp       DWORD [rax + rb_node.color], edx
       jne       .end_if_4
 ;         node_w->right->color = RB_BLACK;
-      mov       rcx, QWORD [rax + rb_node.right]
-      mov       BYTE [rcx + rb_node.color], dl
+      mov       rax, QWORD [rbx + rb_node.right]  ; rax = node_w->right
+      mov       DWORD [rax + rb_node.color], edx
 ;         node_w->color = RB_RED;
-      mov       dl, BYTE RB_RED
-      mov       BYTE [rax + rb_node.color], dl
-;         left_rotate(tree, node_w);
-      mov       rdi, QWORD [rbp - 8]
-      mov       rsi, rax
+      mov       edx, RB_RED                       ; edx = RB_RED
+      mov       DWORD [rbx + rb_node.color], edx
+;         rb_left_rotate(tree, node_w);
+      mov       rdi, QWORD [rbp - 8]              ; rdi = tree
+      mov       rsi, rbx                          ; rsi = node_w
       call      rb_left_rotate
 ;         node_w = node->parent->left;
-      mov       rsi, QWORD [rbp - 16]
-      mov       rcx, QWORD [rsi + rb_node.parent]
-      mov       rax, QWORD [rcx + rb_node.left]
-      mov       QWORD [rbp - 24], rax
+      mov       rax, QWORD [rbp - 16]             ; rax = node
+      mov       rbx, QWORD [rax + rb_node.parent] ; rbx = node->parent
+      mov       rax, QWORD [rbx + rb_node.left]   ; rax = node->parent->left
+      mov       QWORD [rbp - 24], rax             ; rax = node_w
 .end_if_4:
 ;       }
 ;       node_w->color = node->parent->color;
-      mov       rcx, QWORD [rsi + rb_node.parent]
-      mov       dl, BYTE [rcx + rb_node.color]
-      mov       BYTE [rax + rb_node.color], dl
+      mov       rbx, QWORD [rbp - 16]             ; rbx = node
+      mov       rax, QWORD [rbx + rb_node.parent] ; rax = node->parent
+      mov       edx, DWORD [rax + rb_node.color]  ; edx = node->parent->color
+      mov       rbx, QWORD [rbp - 24]             ; rbx = node_w
+      mov       DWORD [rbx + rb_node.color], edx
 ;       node->parent->color = RB_BLACK;
-      mov       dl, BYTE RB_BLACK
-      mov       BYTE [rcx + rb_node.color], dl
-;       right_rotate(tree, node->parent);
-      mov       rdi, QWORD [rbp - 8]
-      mov       rsi, rcx
+      mov       edx, RB_BLACK                     ; edx = RB_BLACK
+      mov       DWORD [rax + rb_node.color], edx
+;       node_w->left->color = RB_BLACK;
+      mov       rax, QWORD [rbx + rb_node.left]   ; rax = node_w->left
+      mov       DWORD [rax + rb_node.color], edx
+;       rb_right_rotate(tree, node->parent);
+      mov       rdi, QWORD [rbp - 8]              ; rdi = tree
+      mov       rbx, QWORD [rbp - 16]             ; rbx = node
+      mov       rsi, QWORD [rbx + rb_node.parent] ; rsi = node->parent
       call      rb_right_rotate
 ;       node = tree->root;
-      mov       rdi, QWORD [rbp - 8]
-      mov       rsi, QWORD [rdi + rb_tree.root]
-      mov       QWORD [rbp - 16], rsi
-      jmp       .loop
+      mov       rdi, QWORD [rbp - 8]              ; rdi = tree
+      mov       rax, QWORD [rdi + rb_tree.root]   ; rax = tree->root
+      mov       QWORD [rbp - 16], rax             ; rax = node
+      jmp       .while_loop
 ;     }
 ;   }
+.end_while:
 ; }
 ; node->color = RB_BLACK;
-      mov       dl, BYTE RB_BLACK
-      mov       rsi, QWORD [rbp - 16]
-      mov       BYTE [rsi + rb_node.color], dl
+      mov       edx, RB_BLACK                     ; edx = RB_BLACK
+      mov       rax, QWORD [rbp - 16]             ; rax = node
+      mov       DWORD [rax + rb_node.color], edx
 .epilogue:
-      pop       r12
+      mov       rbx, QWORD [rbp - 32]
       mov       rsp, rbp
       pop       rbp
       ret
@@ -539,10 +375,12 @@ rb_delete_fixup:
 ;
 ;   QWORD [rbp - 8]   = rdi (tree)
 ;   QWORD [rbp - 16]  = rsi (key)
-;   QWORD [rbp - 24]  = (rb_node_t *node_n)
+;   QWORD [rbp - 24]  = (rb_node_t *node_z)
 ;   QWORD [rbp - 32]  = (rb_node_t *node_x)
 ;   QWORD [rbp - 40]  = (rb_node_t *node_y)
-;   QWORD [rbp - 44]  = (int y_original_color)
+;   DWORD [rbp - 48]  = (int y_original_color)
+;   QWORD [rbp - 56]  = rbx (callee saved)
+;   QWORD [rbp - 64]  = r12 (callee saved)
 ;-------------------------------------------------------------------------------
 ;
       global rb_delete:function
@@ -550,136 +388,262 @@ rb_delete:
 ; prologue
       push      rbp
       mov       rbp, rsp
-      sub       rsp, 44
-      push      r12
-; QWORD [rbp - 8] = rdi (tree)
+      sub       rsp, 72
       mov       QWORD [rbp - 8], rdi
-; QWORD [rbp - 16] = rsi (key)
       mov       QWORD [rbp - 16], rsi
-; BEGIN PRINTF
-; printf(fmt, hdr01);
-      push      rsi
-      push      rdi
-      xor       rax, rax
-      mov       rdi, fmt
-      mov       rsi, hdr01
-      ALIGN_STACK_AND_CALL r12, printf, wrt, ..plt
-      pop       rdi
-      pop       rsi
-; END PRINTF
-; if ((node_n = rb_find(tree, key)) == NULL) return;
-      call      rb_find
-      test      rax, rax
-      jz        .epilogue
-      mov       QWORD [rbp - 24], rax
-; tree->term_cb(node_n->data);    // user callback on data
-      mov       rdi, QWORD [rbp - 8]
-      mov       rcx, QWORD [rdi + rb_tree.term_cb]
-      mov       rdi, QWORD [rax + rb_node.data]
+      mov       QWORD [rbp - 56], rbx
+      mov       QWORD [rbp - 64], r12
+; if ((node_z = rb_find(tree, key)) == tree->nil) return;
+      call      rb_find                             ; rax = node_z | tree->nil
+      mov       rdi, QWORD [rbp - 8]                ; rdi = tree
+      cmp       rax, QWORD [rdi + rb_tree.nil]
+      je        .epilogue
+      mov       QWORD [rbp - 24], rax               ; rax = node_z
+; tree->term_cb(node_z->data);
+      mov       rcx, QWORD [rdi + rb_tree.term_cb]  ; rcx = term_cb
+      mov       rdi, QWORD [rax + rb_node.data]     ; rdi = node_z->data
       ALIGN_STACK_AND_CALL r12, rcx
-; rb_node_t *node_x = NULL
-      xor       rax, rax
+; rb_node_t *node_x = tree->nil;
+      mov       rdi, QWORD [rbp - 8]                ; rdi = tree
+      mov       rax, QWORD [rdi + rb_tree.nil]      ; rax = tree->nil
       mov       QWORD [rbp - 32], rax
-; rb_node_t *node_y = node_n
-      mov       rax, QWORD [rbp - 24]
+; rb_node_t *node_y = node_z
+      mov       rax, QWORD [rbp - 24]               ; rax = node_z
       mov       QWORD [rbp - 40], rax
 ; int y_original_color = node_y->color
-      xor       edx, edx
-      mov       dl, BYTE [rax + rb_node.color]
-      mov       DWORD [rbp - 44], edx
-; if (node_n->left == tree->nil) {
-      mov       rdi, QWORD [rbp - 8]
-      mov       rdx, QWORD [rdi + rb_tree.nil]
-      cmp       QWORD [rax + rb_node.left], rdx
+      mov       rax, QWORD [rbp - 40]               ; rax = node_y
+      mov       edx, DWORD [rax + rb_node.color]
+      mov       DWORD [rbp - 48], edx
+; if (node_z->left == tree->nil) {
+      mov       rdi, QWORD [rbp - 8]                ; rdi = tree
+      mov       rax, QWORD [rdi + rb_tree.nil]      ; rax = tree->nil
+      mov       rbx, QWORD [rbp - 24]               ; rbx = node_z
+      cmp       QWORD [rbx + rb_node.left], rax
       jne       .else_if
-;   node_x = node_n->left;
-      mov       rcx, QWORD [rax + rb_node.left]
-      mov       QWORD [rbp - 32], rcx
-;   rb_transplant(tree, node_n, node_n->right)
-      mov       rsi, rax
-      mov       rdx, QWORD [rax + rb_node.right]
+;   node_x = node_z->right;
+      mov       rax, QWORD [rbx + rb_node.right]     ; rax = node_z->right
+      mov       QWORD [rbp - 32], rax
+;   rb_transplant(tree, node_z, node_z->right);
+      mov       rdx, QWORD [rbx + rb_node.right]    ; rdx = node_z->right
+      mov       rsi, rbx                            ; rsi = node_z
+      mov       rdi, QWORD [rbp - 8]                ; rdi = tree
       call      rb_transplant
       jmp       .cont_1
 .else_if:
-; } else if (node_n->right == tree->nil) {
-      mov       rdx, QWORD [rdi + rb_tree.nil]
-      cmp       QWORD [rax + rb_node.right], rdx
+; } else if (node_z->right == tree->nil) {
+      mov       rdi, QWORD [rbp - 8]                ; rdi = tree
+      mov       rax, QWORD [rdi + rb_tree.nil]      ; rax = tree->nil
+      mov       rbx, QWORD [rbp - 24]               ; rbx = node_z
+      cmp       QWORD [rbx + rb_node.right], rax
       jne       .else_1
-;   node_x = node_n->left;
-      mov       rdx, QWORD [rax + rb_node.left]
-      mov       QWORD [rbp - 32], rdx
-;   rb_transplant(tree, node_n, node_n->left)
-      mov       rsi, rax
+;   node_x = node_z->left;
+      mov       rax, QWORD [rbx + rb_node.left]     ; rax = node_z->left
+      mov       QWORD [rbp - 32], rax               ; rax = nodx_x
+;   rb_transplant(tree, node_z, node_z->left);
+      mov       rdi, QWORD [rbp - 8]                ; rdi = tree
+      mov       rsi, rbx                            ; rsi = node_z
+      mov       rdx, rax                            ; rdx = node_z->left
       call      rb_transplant
       jmp       .cont_1
 .else_1:
 ; } else {
-;   node_y = rb_tree_minimum(tree, node_n->right)
-      mov       rsi, QWORD [rax + rb_node.right]
+;   node_y = rb_tree_minimum(tree, node_z->right);
+      mov       rbx, QWORD [rbp - 24]               ; rbx = node_z
+      mov       rsi, QWORD [rbx + rb_node.right]    ; rsi = node_z->right
+      mov       rdi, QWORD [rbp - 8]                ; rdi = tree
       call      rb_tree_minimum
-      mov       QWORD [rbp - 40], rax
-;   y_original_color = node_y->color
-      xor       edx, edx
-      mov       dl, BYTE [rax + rb_node.color]
-      mov       DWORD [rbp - 44], edx
-;   node_x = node_y->right
-      mov       rcx, QWORD [rax + rb_node.right]
-      mov       QWORD [rbp - 32], rcx
-;   if (node_y != node_n->right) {
-      mov       rcx, QWORD [rbp - 24]
-      cmp       rax, QWORD [rcx + rb_node.right]
-      je        .else_2
-;     rb_transplant(tree, node_y, node_y->right)
-      mov       rdi, QWORD [rbp - 8]
-      mov       rsi, rax
-      mov       rdx, QWORD [rax + rb_node.right]
-      call      rb_transplant
-;     node_y->right = node_n->right
-      mov       rcx, QWORD [rbp - 24]
-      mov       rcx, QWORD [rcx + rb_node.right]
-      mov       rax, QWORD [rbp - 40]
-      mov       QWORD [rax + rb_node.right], rcx
-;     node_y->right->parent = node_y
-      mov       QWORD [rcx + rb_node.parent], rax
+      mov       QWORD [rbp - 40], rax               ; rax = node_y
+;   y_original_color = node_y->color;
+      mov       edx, DWORD [rax + rb_node.color]
+      mov       DWORD [rbp - 48], edx
+;   node_x = node_y->right;
+      mov       rbx, QWORD [rax + rb_node.right]    ; rbx = node_y->right
+      mov       QWORD [rbp - 32], rbx
+;   if (node_y->parent == node_z) {
+      mov       rbx, QWORD [rbp - 24]               ; rbx = node_z
+      cmp       QWORD [rax + rb_node.parent], rbx
+      jne       .else_2
+;     node_x->parent = node_y;
+      mov       rbx, QWORD [rbp - 32]               ; rbx = node_x
+      mov       QWORD [rbx + rb_node.parent], rax
       jmp       .cont_2
 .else_2:
-;   } else node_x->parent = node_y
-      mov       rcx, QWORD [rbp - 32]
-      mov       QWORD [rcx + rb_node.parent], rax
-.cont_2:
-;   rb_transplant(tree, node_n, node_y)
-      mov       rdi, QWORD [rbp - 8]
-      mov       rsi, QWORD [rbp - 24]
-      mov       rdx, rax
+;   } else {
+;     rb_transplant(tree, node_y, node_y->right);
+      mov       rdi, QWORD [rbp - 8]                ; rdi = tree
+      mov       rsi, QWORD [rbp - 40]               ; rsi = node_y
+      mov       rdx, QWORD [rsi + rb_node.right]    ; rdx = node_y->right
       call      rb_transplant
-;   node_y->left = node_n->left
-      mov       rcx, QWORD [rbp - 24]
-      mov       rcx, QWORD [rcx + rb_node.left]
-      mov       rax, QWORD [rbp - 40]
-      mov       QWORD [rax + rb_node.left], rcx
-;   node_y->left->parent = node_y
-      mov       rcx, QWORD [rax + rb_node.left]
-      mov       QWORD [rcx + rb_node.parent], rax
-;   node_y->color = node_n->color
-      mov       rcx, QWORD [rbp - 24]
-      mov       dl, BYTE [rcx + rb_node.color]
-      mov       BYTE [rax + rb_node.color], dl
+;     node_y->right = node_z->right;
+      mov       rbx, QWORD [rbp - 24]               ; rbx = node_z
+      mov       rax, QWORD [rbx + rb_node.right]    ; rax = node_z->right
+      mov       rbx, QWORD [rbp - 40]               ; rbx = node_y
+      mov       QWORD [rbx + rb_node.right], rax
+;     node_y->right->parent = node_y;
+      mov       rax, QWORD [rbx + rb_node.right]    ; rax = node_y->right
+      mov       QWORD [rax + rb_node.parent], rbx
+;   }
+.cont_2:
+;   rb_transplant(tree, node_z, node_y);
+      mov       rdi, QWORD [rbp - 8]                ; rdi = tree
+      mov       rsi, QWORD [rbp - 24]               ; rsi = node_z
+      mov       rdx, QWORD [rbp - 40]               ; rdx = node_y
+      call      rb_transplant
+;   node_y->left = node_z->left;
+      mov       rbx, QWORD [rbp - 24]               ; rbx = node_z
+      mov       rax, QWORD [rbx + rb_node.left]     ; rax = node_z->left
+      mov       rbx, QWORD [rbp - 40]               ; rbx = node_y
+      mov       QWORD [rbx + rb_node.left], rax
+;   node_y->left->parent = node_y;
+      mov       rax, QWORD [rbx + rb_node.left]     ; rax = node_y->left
+      mov       QWORD [rax + rb_node.parent], rbx
+;   node_y->color = node_z->color;
+      mov       rax, QWORD [rbp - 24]               ; rax = node_z
+      mov       edx, DWORD [rax + rb_node.color]
+      mov       DWORD [rbx + rb_node.color], edx
 ; }
 .cont_1:
 ; if (y_original_color == RB_BLACK)
-      mov       edx, DWORD [rbp - 44]
-      cmp       dl, BYTE RB_BLACK
+      mov       edx, RB_BLACK
+      cmp       DWORD [rbp - 48], edx
       jne       .cont_3
-;   delete_fixup(tree, node_x)
-      mov       rdi, QWORD [rbp - 8]
-      mov       rsi, QWORD [rbp - 32]
+;   rb_delete_fixup(tree, node_x);
+      mov       rdi, QWORD [rbp - 8]    ; rdi = tree
+      mov       rsi, QWORD [rbp - 32]   ; rsi = node_x
       call      rb_delete_fixup
 .cont_3:
-; free(node_n);    // free memory of deleted node
-      mov       rdi, QWORD [rbp - 24]
+; free(node_z);
+      mov       rdi, QWORD [rbp - 24]   ; rdi = node_z
       ALIGN_STACK_AND_CALL r12, free, wrt, ..plt
 .epilogue:
-      pop       r12
+      mov       r12, QWORD [rbp - 64]
+      mov       rbx, QWORD [rbp - 56]
+      mov       rsp, rbp
+      pop       rbp
+      ret
+;
+;-------------------------------------------------------------------------------
+; C definition:
+;
+;   void rb_left_rotate (rb_tree_t *tree, rb_node_t *node);
+;
+; param:
+;
+;   rdi = tree
+;   rsi = node
+;
+; stack:
+;
+;   QWORD [rbp - 8] = rbx (callee saved)
+;-------------------------------------------------------------------------------
+;
+      global rb_left_rotate:function
+rb_left_rotate:
+; prologue
+      push      rbp
+      mov       rbp, rsp
+      sub       rsp, 8
+      mov       QWORD [rbp - 8], rbx
+; rb_node_t *node_y = node->right;
+      mov       rax, QWORD [rsi + rb_node.right]    ; rax = node->right = node_y
+; node->right = node_y->left;
+      mov       rbx, QWORD [rax + rb_node.left]     ; rbx = node_y->left
+      mov       QWORD [rsi + rb_node.right], rbx
+; if (node_y->left != tree->nil)
+      cmp       rbx, QWORD [rdi + rb_tree.nil]
+      je        .end_if
+;   node_y->left->parent = node;
+      mov       QWORD [rbx + rb_node.parent], rsi
+.end_if:
+; node_y->parent = node->parent;
+      mov       rbx, QWORD [rsi + rb_node.parent]   ; rbx = node->parent
+      mov       QWORD [rax + rb_node.parent], rbx
+; if (node->parent == tree->nil)
+      cmp       rbx, QWORD [rdi + rb_tree.nil]
+      jne       .else_if
+;   tree->root = node_y;
+      mov       QWORD [rdi + rb_tree.root], rax
+      jmp       .end_if_else
+.else_if:
+; else if (node == node->parent->left)
+      cmp       rsi, QWORD [rbx + rb_node.left]
+      jne       .else
+;   node->parent->left = node_y;
+      mov       QWORD [rbx + rb_node.left], rax
+      jmp       .end_if_else
+.else:
+;  else node->parent->right = node_y;
+      mov       QWORD [rbx + rb_node.right], rax
+.end_if_else:
+;  node_y->left = node;
+      mov       QWORD [rax + rb_node.left], rsi
+;  node->parent = node_y;
+      mov       QWORD [rsi + rb_node.parent], rax
+; epilogue
+      mov       rbx, QWORD [rbp - 8]
+      mov       rsp, rbp
+      pop       rbp
+      ret
+;
+;-------------------------------------------------------------------------------
+; C definition:
+;
+;   void rb_right_rotate (rb_tree_t *tree, rb_node_t *node);
+;
+; param:
+;
+;   rdi = tree
+;   rsi = node
+;
+; stack:
+;
+;   QWORD [rbp - 8]  = rbx (callee saved)
+;-------------------------------------------------------------------------------
+;
+      global rb_right_rotate:function
+rb_right_rotate:
+; prologue
+      push      rbp
+      mov       rbp, rsp
+      sub       rsp, 8
+      mov       QWORD [rbp - 8], rbx
+; rb_node_t *node_y = node->left;
+      mov       rax, QWORD [rsi + rb_node.left]     ; rax = node->left = node_y
+; node->left = node_y->right;
+      mov       rbx, QWORD [rax + rb_node.right]    ; rbx = node_y->right
+      mov       QWORD [rsi + rb_node.left], rbx
+; if (node_y->right != tree->nil)
+      cmp       rbx, QWORD [rdi + rb_tree.nil]
+      je        .end_if
+;   node_y->right->parent = node;
+      mov       QWORD [rbx + rb_node.parent], rsi
+.end_if:
+; node_y->parent = node->parent;
+      mov       rbx, QWORD [rsi + rb_node.parent]   ; rbx = node->parent
+      mov       QWORD [rax + rb_node.parent], rbx
+; if (node->parent == tree->nil)
+      cmp       rbx, QWORD [rdi + rb_tree.nil]
+      jne       .else_if
+;   tree->root = node_y;
+      mov       QWORD [rdi + rb_tree.root], rax
+      jmp       .end_if_else
+.else_if:
+; else if (node == node->parent->right)
+      cmp       rsi, QWORD [rbx + rb_node.right]
+      jne       .else
+;   node->parent->right = node_y;
+      mov       QWORD [rbx + rb_node.right], rax
+      jmp       .end_if_else
+.else:
+; else node->parent->left = node_y;
+      mov       QWORD [rbx + rb_node.left], rax
+.end_if_else:
+; node_y->right = node;
+      mov       QWORD [rax + rb_node.right], rsi
+; node->parent = node_y;
+      mov       QWORD [rsi + rb_node.parent], rax
+; epilogue
+      mov       rbx, QWORD [rbp - 8]
       mov       rsp, rbp
       pop       rbp
       ret
@@ -706,6 +670,8 @@ rb_delete:
 ;   QWORD [rbp - 8]   = rdi (node)
 ;   QWORD [rbp - 16]  = rsi (find_cb)
 ;   QWORD [rbp - 24]  = rdx (key)
+;   QWORD [rbp - 32]  = rbx (callee saved)
+;   QWORD [rbp - 40]  = r12 (callee saved)
 ;-------------------------------------------------------------------------------
 ;
       static rb_find_rcrs
@@ -713,47 +679,38 @@ rb_find_rcrs:
 ; prologue
       push      rbp
       mov       rbp, rsp
-      sub       rsp, 24
-      push      r12
-; QWORD [rbp - 8] = rdi (node)
+      sub       rsp, 40
       mov       QWORD [rbp - 8], rdi
-; QWORD [rbp - 16] = rsi (find_cb)
       mov       QWORD [rbp - 16], rsi
-; QWORD [rbp - 24] = rdx (key)
       mov       QWORD [rbp - 24], rdx
-; BEGIN PRINTF
-; printf(fmt, hdr04);
-      xor       rax, rax
-      mov       rdi, fmt
-      mov       rsi, hdr04
-      ALIGN_STACK_AND_CALL r12, printf, wrt, ..plt
-      mov       rdi, QWORD [rbp - 8]
-      mov       rsi, QWORD [rbp - 16]
-      mov       rdx, QWORD [rbp - 24]
-; END PRINTF
-; if (node == &null_node || find_cb(node->data, key) == 0) return node
-      mov       rax, null_node
-      cmp       rdi, rax
-      je        .epilogue
-      mov       rdi, QWORD [rdi + rb_node.data]
-      mov       rcx, rsi
-      mov       rsi, rdx
+      mov       QWORD [rbp - 32], rbx
+      mov       QWORD [rbp - 40], r12
+; if (node == node->tree->nil || find_cb(key, node->data) == 0) return node
+      mov       rbx, QWORD [rdi + rb_node.tree] ; rbx = node->tree
+      cmp       rdi, QWORD [rbx + rb_tree.nil]
+      je        .match
+      mov       rcx, rsi                        ; rcx = find_cb
+      mov       rsi, QWORD [rdi + rb_node.data] ; rsi = node->data
+      mov       rdi, rdx                        ; rdi = key
       ALIGN_STACK_AND_CALL r12, rcx
       test      eax, eax
       jz        .match
-      mov       rdi, QWORD [rbp - 8]
-      mov       rdi, QWORD [rdi + rb_node.left]
+      mov       rbx, QWORD [rbp - 8]              ; rdx = node
+      mov       rax, QWORD [rbx + rb_node.left]   ; rax = node->left
       js        .go_left
-      mov       rdi, QWORD [rdi + rb_node.right]
+      mov       rax, QWORD [rbx + rb_node.right]  ; rax = node->right
 .go_left:
-      mov       rsi, QWORD [rbp - 16]
-      mov       rdx, QWORD [rbp - 24]
+; return rb_find_rcrs(node, find_cb, key);
+      mov       rdi, rax                ; rdi = node->left/right
+      mov       rsi, QWORD [rbp - 16]   ; rsi = find_cb
+      mov       rdx, QWORD [rbp - 24]   ; rdx = key
       call      rb_find_rcrs
       jmp       .epilogue
 .match:
       mov       rax, QWORD [rbp - 8]
 .epilogue:
-      pop       r12
+      mov       r12, QWORD [rbp - 40]
+      mov       rbx, QWORD [rbp - 32]
       mov       rsp, rbp
       pop       rbp
       ret
@@ -770,43 +727,25 @@ rb_find_rcrs:
 ;
 ; return:
 ;
-;   rax = &(matched node) | NULL
+;   rax = matched_node | tree->nil
 ;-------------------------------------------------------------------------------
 ;
       global rb_find:function
 rb_find:
-; prologue
-      push      r12
-; BEGIN PRINTF
-; printf(fmt, hdr03);
-      push      rsi
-      push      rdi
-      xor       rax, rax
-      mov       rdi, fmt
-      mov       rsi, hdr03
-      ALIGN_STACK_AND_CALL r12, printf, wrt, ..plt
-      pop       rdi
-      pop       rsi
-; END PRINTF
-; if (((rax) = rb_find_rcrs (tree->root, tree->find_cb, key)) == &null_node)
+; return rb_find_rcrs (tree->root, tree->find_cb, key);
       mov       rdx, rsi
       mov       rsi, QWORD [rdi + rb_tree.find_cb]
-      mov       rdi, QWORD [rdi + rb_tree.root]
+      mov       rax, QWORD [rdi + rb_tree.root]
+      mov       rdi, rax
       call      rb_find_rcrs
-      mov       rdx, null_node
-      cmp       rax, rdx
-      jne       .epilogue
-;   return NULL;
-      xor       rax, rax
-.epilogue:
-      pop       r12
       ret
 ;
 ;-------------------------------------------------------------------------------
 ; C definition:
 ;
-;   void rb_tree_init (rb_tree_t *tree,
+;   int rb_tree_init (rb_tree_t *tree,
 ;               rb_find_cb find_cb,
+;               rb_key_cb key_cb,
 ;               rb_nsrt_cb nsrt_cb,
 ;               rb_term_cb term_cb,
 ;               rb_trav_cb trav_cb);
@@ -818,29 +757,66 @@ rb_find:
 ;   rdx = nsrt_cb
 ;   rcx = term_cb
 ;   r8  = trav_cb
+;
+; stack:
+;
+;   QWORD [rbp - 8]   = tree (rdi)
+;   QWORD [rbp - 16]  = rbx (callee saved)
+;   QWORD [rbp - 24]  = r12 (callee saved)
 ;-------------------------------------------------------------------------------
 ;
       global rb_tree_init:function
 rb_tree_init:
 ; prologue
-      push      r12
+      push      rbp
+      mov       rbp, rsp
+      sub       rsp, 24
+      mov       QWORD [rbp - 8], rdi
+      mov       QWORD [rbp - 16], rbx
+      mov       QWORD [rbp - 24], r12
 ; initialize tree structure
-      mov       rax, null_node
-      mov       QWORD [rdi + rb_tree.nil], rax
+      xor       rax, rax
       mov       QWORD [rdi + rb_tree.root], rax
       mov       QWORD [rdi + rb_tree.find_cb], rsi
-      mov       QWORD [rdi + rb_tree.nsrt_cb], rdx
-      mov       QWORD [rdi + rb_tree.term_cb], rcx
-      mov       QWORD [rdi + rb_tree.trav_cb], r8
-; BEGIN PRINTF
-; printf(fmt, hdr13);
-      xor       rax, rax
-      mov       rdi, fmt
-      mov       rsi, hdr13
-      ALIGN_STACK_AND_CALL r12, printf, wrt, ..plt
-; END PRINTF
-; epilogue
-      pop       r12
+      mov       QWORD [rdi + rb_tree.key_cb], rdx
+      mov       QWORD [rdi + rb_tree.nsrt_cb], rcx
+      mov       QWORD [rdi + rb_tree.term_cb], r8
+      mov       QWORD [rdi + rb_tree.trav_cb], r9
+; if ((tree->nil = calloc(1, sizeof(rb_node_t))) == NULL) return -1;
+      mov       rdi, 1
+      mov       rsi, rb_node_size
+      ALIGN_STACK_AND_CALL r12, calloc, wrt, ..plt
+      mov       rdi, QWORD [rbp - 8]
+      mov       QWORD [rdi + rb_tree.nil], rax
+      test      rax, rax
+      jnz       .end_if
+      mov       eax, -1
+      jmp       .epilogue
+.end_if:
+; tree->nil->tree = tree;
+      mov       rbx, QWORD [rbp - 8]
+      mov       rax, QWORD [rbx + rb_tree.nil]
+      mov       QWORD [rax + rb_node.tree], rbx
+; tree->nil->parent = tree->nil;
+      mov       QWORD [rax + rb_node.parent], rax
+; tree->nil->left = tree->nil;
+      mov       QWORD [rax + rb_node.left], rax
+; tree->nil->right = tree->nil;
+      mov       QWORD [rax + rb_node.right], rax
+; tree->nil->data = NULL;
+      xor       rcx, rcx
+      mov       QWORD [rax + rb_node.data], rcx
+; tree->nil->color = RB_BLACK;
+      mov       edx, RB_BLACK
+      mov       DWORD [rax + rb_node.color], edx
+; tree->root = tree->nil;
+      mov       QWORD [rbx + rb_tree.root], rax
+      xor       eax, eax  ; return 0;
+.epilogue:
+      mov       r12, QWORD [rbp - 24]
+      mov       rbx, QWORD [rbp - 16]
+      mov       rsp, rbp
+      pop       rbp
       ret
 ;
 ;-------------------------------------------------------------------------------
@@ -858,6 +834,7 @@ rb_tree_init:
 ;   QWORD [rbp - 8]   = rdi (tree)
 ;   QWORD [rbp - 16]  = rsi (node)
 ;   QWORD [rbp - 24]  = (rb_node_t *node_y)
+;   QWORD [rbp - 32]  = rbx (callee saved)
 ;-------------------------------------------------------------------------------
 ;
       static rb_insert_fixup
@@ -865,147 +842,134 @@ rb_insert_fixup:
 ; prologue
       push      rbp
       mov       rbp, rsp
-      sub       rsp, 24
-      push      r12
-; QWORD [rbp - 8] = rdi (tree)
+      sub       rsp, 40
       mov       QWORD [rbp - 8], rdi
-; QWORD [rbp - 16] = rsi (n)
       mov       QWORD [rbp - 16], rsi
-; BEGIN PRINTF
-; printf(fmt, hdr06);
-      push      rsi
-      push      rdi
-      xor       rax, rax
-      mov       rdi, fmt
-      mov       rsi, hdr06
-      ALIGN_STACK_AND_CALL r12, printf, wrt, ..plt
-      pop       rdi
-      pop       rsi
-; END PRINTF
+      mov       QWORD [rbp - 32], rbx
 ; while (node->parent->color == RB_RED) {
-.loop:
-      mov       rsi, QWORD [rbp - 16]
-      mov       rax, QWORD [rsi + rb_node.parent]
-      mov       dl, BYTE [rax + rb_node.color]
-      cmp       dl, BYTE RB_RED
-      jne       .cont_1
+.while_loop:
+      mov       rbx, QWORD [rbp - 16]             ; rbx = node
+      mov       rax, QWORD [rbx + rb_node.parent] ; rax = node->parent
+      mov       edx, DWORD [rax + rb_node.color]
+      cmp       edx, RB_RED
+      jne       .end_while
 ;   if (node->parent == node->parent->parent->left) {
-      mov       rcx, QWORD [rax + rb_node.parent]
-      mov       rcx, QWORD [rcx + rb_node.left]
+      mov       rbx, QWORD [rax + rb_node.parent] ; rbx = node->parent->parent
+      mov       rcx, QWORD [rbx + rb_node.left]   ; rcx = node->parent->parent->left
       cmp       rax, rcx
       jne       .else_1
 ;     rb_node_t *node_y = node->parent->parent->right;
-      mov       rcx, QWORD [rax + rb_node.parent]
-      mov       rcx, QWORD [rcx + rb_node.right]
-      mov       QWORD [rbp - 24], rcx
+      mov       rax, QWORD [rbx + rb_node.right]  ; rax = node->parent->parent->right
+      mov       QWORD [rbp - 24], rax             ; rax = node_y
 ;     if (node_y->color == RB_RED) {
-      mov       dl, BYTE [rcx + rb_node.color]
-      cmp       dl, BYTE RB_RED
+      mov       edx, DWORD [rax + rb_node.color]
+      cmp       edx, RB_RED
       jne       .else_2
 ;       node->parent->color = RB_BLACK;
-      mov       dl, BYTE RB_BLACK
-      mov       BYTE [rax + rb_node.color], RB_BLACK
+      mov       rbx, QWORD [rbp - 16]             ; rbx = node
+      mov       rax, QWORD [rbx + rb_node.parent] ; rax = node->parent
+      mov       DWORD [rax + rb_node.color], RB_BLACK
 ;       node_y->color = RB_BLACK;
-      mov       BYTE [rcx + rb_node.color], dl
+      mov       rax, QWORD [rbp - 24]             ; rax = node_y
+      mov       DWORD [rax + rb_node.color], RB_BLACK
 ;       node->parent->parent->color = RB_RED;
-      mov       dl, BYTE RB_RED
-      mov       rcx, QWORD [rax + rb_node.parent]
-      mov       BYTE [rcx + rb_node.color], dl
+      mov       rbx, QWORD [rbp - 16]             ; rbx = node
+      mov       rax, QWORD [rbx + rb_node.parent] ; rax = node->parent
+      mov       rbx, QWORD [rax + rb_node.parent] ; rbx = node->parent->parent
+      mov       DWORD [rbx + rb_node.color], RB_RED
 ;       node = node->parent->parent;
-      mov       QWORD [rbp - 16], rcx
-      jmp       .loop
+      mov       QWORD [rbp - 16], rbx
+      jmp       .while_loop
 ;     } else {
 .else_2:
 ;       if (node == node->parent->right) {
-      mov       rsi, QWORD [rbp - 16]
-      mov       rax, QWORD [rsi + rb_node.parent]
-      mov       rax, QWORD [rax + rb_node.right]
-      cmp       rsi, rax
-      jne       .cont_2
+      mov       rax, QWORD [rbp - 16]             ; rax = node
+      mov       rbx, QWORD [rax + rb_node.parent] ; rbx = node->parent
+      mov       rcx, QWORD [rbx + rb_node.right]  ; rcx = node->parent->right
+      cmp       rax, rcx
+      jne       .end_if_1
 ;         node = node->parent;
-      mov       rsi, QWORD [rsi + rb_node.parent]
-      mov       QWORD [rbp - 16], rsi
+      mov       QWORD [rbp - 16], rbx
 ;         rb_left_rotate(tree, node);
-      mov       rdi, QWORD [rbp - 8]
+      mov       rdi, QWORD [rbp - 8]              ; rdi = tree
+      mov       rsi, QWORD [rbp - 16]             ; rsi = node
       call      rb_left_rotate
 ;        }
-.cont_2:
+.end_if_1:
 ;        node->parent->color = RB_BLACK;
-      mov       dl, BYTE RB_BLACK
-      mov       rax, QWORD [rsi + rb_node.parent]
-      mov       BYTE [rax + rb_node.color], dl
+      mov       rbx, QWORD [rbp - 16]             ; rbx = node
+      mov       rax, QWORD [rbx + rb_node.parent] ; rax = node->parent
+      mov       DWORD [rax + rb_node.color], RB_BLACK
 ;        node->parent->parent->color = RB_RED;
-      mov       dl, BYTE RB_RED
-      mov       rax, QWORD [rax + rb_node.parent]
-      mov       BYTE [rax + rb_node.color], dl
+      mov       rbx, QWORD [rax + rb_node.parent] ; rbx = node->parent->parent
+      mov       DWORD [rbx + rb_node.color], RB_RED
 ;        rb_right_rotate(tree, node->parent->parent);
-      mov       rdi, QWORD [rbp - 8]
-      mov       rsi, rax
+      mov       rdi, QWORD [rbp - 8]              ; rdi = tree
+      mov       rsi, rbx                          ; rsi = node->parent->parent
       call      rb_right_rotate
-      jmp       .loop
+      jmp       .while_loop
 ;     }
 ;   } else {
 .else_1:
 ;     rb_node_t *node_y = node->parent->parent->left;
-      mov       rcx, QWORD [rax + rb_node.parent]
-      mov       rcx, QWORD [rcx + rb_node.left]
-      mov       QWORD [rbp - 24], rcx
+      mov       rbx, QWORD [rbp - 16]             ; rbx = node
+      mov       rax, QWORD [rbx + rb_node.parent] ; rax = node->parent
+      mov       rbx, QWORD [rax + rb_node.parent] ; rbx = node->parent->parent
+      mov       rax, QWORD [rbx + rb_node.left]   ; rax = node->parent->parent->left
+      mov       QWORD [rbp - 24], rax             ; rax = node_y
 ;     if (node_y->color == RB_RED) {
-      mov       dl, BYTE [rcx + rb_node.color]
-      cmp       dl, BYTE RB_RED
+      cmp       DWORD [rax + rb_node.color], RB_RED
       jne       .else_3
-;       node->parent->color = RB_BLACK;
-      mov       dl, BYTE RB_BLACK
-      mov       BYTE [rax + rb_node.color], RB_BLACK
 ;       node_y->color = RB_BLACK;
-      mov       BYTE [rcx + rb_node.color], dl
+      mov       DWORD [rax + rb_node.color], RB_BLACK
+;       node->parent->color = RB_BLACK;
+      mov       rbx, QWORD [rbp - 16]             ; rbx = node
+      mov       rax, QWORD [rbx + rb_node.parent] ; rax = node->parent
+      mov       DWORD [rax + rb_node.color], RB_BLACK
 ;       node->parent->parent->color = RB_RED;
-      mov       dl, BYTE RB_RED
-      mov       rcx, QWORD [rax + rb_node.parent]
-      mov       BYTE [rcx + rb_node.color], dl
+      mov       rbx, QWORD [rax + rb_node.parent]  ; rbx = node->parent->parent
+      mov       DWORD [rbx + rb_node.color], RB_RED
 ;       node = node->parent->parent;
-      mov       QWORD [rbp - 16], rcx
-      jmp       .loop
+      mov       QWORD [rbp - 16], rbx
+      jmp       .while_loop
 ;     } else {
 .else_3:
 ;       if (node == node->parent->left) {
-      mov       rsi, QWORD [rbp - 16]
-      mov       rax, QWORD [rsi + rb_node.parent]
-      mov       rax, QWORD [rax + rb_node.left]
-      cmp       rsi, rax
-      jne       .cont_3
+      mov       rax, QWORD [rbp - 16]             ; rax = node
+      mov       rbx, QWORD [rax + rb_node.parent] ; rbx = node->parent
+      mov       rcx, QWORD [rbx + rb_node.left]   ; rcx = node->parent->left
+      cmp       rax, rcx
+      jne       .end_if_2
 ;         node = node->parent;
-      mov       rsi, QWORD [rsi + rb_node.parent]
-      mov       QWORD [rbp - 16], rsi
+      mov       QWORD [rbp - 16], rbx             ; rbx = node
 ;         rb_right_rotate(tree, node);
       mov       rdi, QWORD [rbp - 8]
+      mov       rsi, rbx
       call      rb_right_rotate
 ;       }
-.cont_3:
+.end_if_2:
 ;       node->parent->color = RB_BLACK;
-      mov       dl, BYTE RB_BLACK
-      mov       rax, QWORD [rsi + rb_node.parent]
-      mov       BYTE [rax + rb_node.color], dl
+      mov       rax, QWORD [rbp - 16]                 ; rax = node
+      mov       rbx, QWORD [rax + rb_node.parent]     ; rbx = node->parent
+      mov       DWORD [rbx + rb_node.color], RB_BLACK
 ;       node->parent->parent->color = RB_RED;
-      mov       dl, BYTE RB_RED
-      mov       rax, QWORD [rax + rb_node.parent]
-      mov       BYTE [rax + rb_node.color], dl
+      mov       rax, QWORD [rbx + rb_node.parent]     ; rax = node->parent->parent
+      mov       DWORD [rax + rb_node.color], RB_RED
 ;       rb_left_rotate(tree, node->parent->parent);
       mov       rdi, QWORD [rbp - 8]
       mov       rsi, rax
       call      rb_left_rotate
-      jmp       .loop
+      jmp       .while_loop
 ;     }
 ;   }
 ; }
-.cont_1:
+.end_while:
 ; tree->root->color = RB_BLACK;
-      mov       dl, BYTE RB_BLACK
-      mov       rdi, QWORD [rbp - 8]
-      mov       rdi, QWORD [rdi + rb_tree.root]
-      mov       BYTE [rdi + rb_node.color], dl
+      mov       rdi, QWORD [rbp - 8]            ; rdi = tree
+      mov       rax, QWORD [rdi + rb_tree.root] ; rax = tree->root
+      mov       DWORD [rax + rb_node.color], RB_BLACK
 ; epilogue
-      pop       r12
+      mov       rbx, QWORD [rbp - 32]
       mov       rsp, rbp
       pop       rbp
       ret
@@ -1026,6 +990,8 @@ rb_insert_fixup:
 ;   QWORD [rbp - 16]  = rsi (node)
 ;   QWORD [rbp - 24]  = (rb_node_t *node_x)
 ;   QWORD [rbp - 32]  = (rb_node_t *node_y)
+;   QWORD [rbp - 40]  = rbx (callee saved)
+;   QWORD [rbp - 48]  = r12 (callee saved)
 ;-------------------------------------------------------------------------------
 ;
       global rb_insert:function
@@ -1033,103 +999,98 @@ rb_insert:
 ; prologue
       push      rbp
       mov       rbp, rsp
-      sub       rsp, 32
-      push      r12
-; QWORD [rbp - 8]  = rdi (tree)
+      sub       rsp, 56
       mov       QWORD [rbp - 8], rdi
-; QWORD [rbp - 16] = rsi (n)
       mov       QWORD [rbp - 16], rsi
-; BEGIN PRINTF
-; printf(fmt, hdr05);
-      xor       rax, rax
-      mov       rdi, fmt
-      mov       rsi, hdr05
-      ALIGN_STACK_AND_CALL r12, printf, wrt, ..plt
-      mov       rdi, QWORD [rbp - 8]
-      mov       rsi, QWORD [rbp - 16]
-; END PRINTF
+      mov       QWORD [rbp - 40], rbx
+      mov       QWORD [rbp - 48], r12
 ; rb_node_t *node_x = tree->root
-      mov       rax, QWORD [rdi + rb_tree.root]
-      mov       QWORD [rbp - 24], rax
-; rb_node_t *node_y = tree->nil
-      mov       rcx, QWORD [rdi + rb_tree.nil]
-      mov       QWORD [rbp - 32], rcx
+      mov       rax, QWORD [rdi + rb_tree.root]   ; rax = tree->root
+      mov       QWORD [rbp - 24], rax             ; rax = node_x
+; rb_node_t *node_y = tree->nil                   ;
+      mov       rbx, QWORD [rdi + rb_tree.nil]    ; rbx = tree->nil
+      mov       QWORD [rbp - 32], rbx             ; rbx = node_y
 ; while (node_x != tree->nil) {
-.loop:
-      cmp       rax, rcx
+.while_loop:
+      mov       rdi, QWORD [rbp - 8]              ; rdi = tree
+      mov       rbx, QWORD [rdi + rb_tree.nil]    ; rbx = tree->nill
+      mov       rax, QWORD [rbp - 24]             ; rax = node_x
+      cmp       rax, rbx
       je        .end_while
 ;   node_y = node_x;
       mov       QWORD [rbp - 32], rax
 ;   if (tree->nsrt_cb(node->data, node_x->data) < 0)
-      mov       rdx, [rdi + rb_tree.nsrt_cb]
-      mov       rdi, QWORD [rbp - 16]
-      mov       rdi, [rdi + rb_node.data]
+      mov       rcx, [rdi + rb_tree.nsrt_cb]
+      mov       rax, QWORD [rbp - 16]             ; rax = node
+      mov       rdi, [rax + rb_node.data]
+      mov       rax, QWORD [rbp - 24]             ; rax = node_x
       mov       rsi, [rax + rb_node.data]
-      ALIGN_STACK_AND_CALL r12, rdx
+      ALIGN_STACK_AND_CALL r12, rcx
       test      eax, eax
       jns       .else_1
 ;     node_x = node_x->left;
-      mov       rax, QWORD [rbp - 24]
-      mov       rax, QWORD [rax + rb_node.left]
-      mov       QWORD [rbp - 24], rax
-      jmp       .loop_cont
+      mov       rbx, QWORD [rbp - 24]             ; rbx = node_x
+      mov       rax, QWORD [rbx + rb_node.left]   ; rax = node_x->left
+      mov       QWORD [rbp - 24], rax             ; rax = node_x
+      jmp       .end_if_else
 .else_1:
 ;   else node_x = node_x->right;
-      mov       rax, QWORD [rbp - 24]
-      mov       rax, QWORD [rax + rb_node.right]
-      mov       QWORD [rbp - 24], rax
-.loop_cont:
-      mov       rdi, QWORD [rbp - 8]
-      mov       rcx, QWORD [rdi + rb_tree.nil]
-      jmp       .loop
+      mov       rbx, QWORD [rbp - 24]             ; rbx = node_x
+      mov       rax, QWORD [rbx + rb_node.right]  ; rax = node_x->right
+      mov       QWORD [rbp - 24], rax             ; rax = node_x
+.end_if_else:
+      jmp       .while_loop
 ; }
 .end_while:
 ; node->parent = node_y;
-      mov       rcx, QWORD [rbp - 32]
-      mov       rsi, QWORD [rbp - 16]
-      mov       QWORD [rsi + rb_node.parent], rcx
+      mov       rax, QWORD [rbp - 32]             ; rax = node_y
+      mov       rbx, QWORD [rbp - 16]             ; rbx = node_x
+      mov       QWORD [rbx + rb_node.parent], rax
 ; if (node_y == tree->nil)
-      mov       rdx, QWORD [rdi + rb_tree.nil]
-      cmp       rcx, rdx
+      mov       rdi, QWORD [rbp - 8]
+      cmp       rax, QWORD [rdi + rb_tree.nil]
       jne       .else_if
 ;   tree->root = node;
-      mov       QWORD [rdi + rb_tree.root], rsi
-      jmp       .cont_2
+      mov       rax, QWORD [rbp - 16]             ; rax = node
+      mov       QWORD [rdi + rb_tree.root], rax
+      jmp       .end_else_3
 .else_if:
 ;  else if (tree->nsrt_cb(node->data, node_y->data) < 0)
-      mov       rdx, [rdi + rb_tree.nsrt_cb]
-      mov       rdi, QWORD [rbp - 16]
-      mov       rdi, [rdi + rb_node.data]
-      mov       rsi, [rcx + rb_node.data]
-      ALIGN_STACK_AND_CALL r12, rdx
+      mov       rcx, [rdi + rb_tree.nsrt_cb]      ; rcx = tree->nsrt_cb
+      mov       rax, QWORD [rbp - 16]             ; rax = node
+      mov       rdi, [rax + rb_node.data]         ; rdi = node->data
+      mov       rax, QWORD [rbp - 32]             ; rax = node_y
+      mov       rsi, [rax + rb_node.data]         ; rsi = node_y->data
+      ALIGN_STACK_AND_CALL r12, rcx
       test      eax, eax
-      jns       .else_2
+      jns       .else_3
 ;    node_y->left = node;
-      mov       rsi, QWORD [rbp - 16]
-      mov       rcx, QWORD [rbp - 32]
-      mov       QWORD [rcx + rb_node.left], rsi
-      jmp       .cont_2
-.else_2:
+      mov       rax, QWORD [rbp - 16]             ; rax = node
+      mov       rbx, QWORD [rbp - 32]             ; rbx = node_y
+      mov       QWORD [rbx + rb_node.left], rax
+      jmp       .end_else_3
+.else_3:
 ;  else node_y->right = node;
-      mov       rsi, QWORD [rbp - 16]
-      mov       rcx, QWORD [rbp - 32]
-      mov       QWORD [rcx + rb_node.right], rsi
-.cont_2:
+      mov       rax, QWORD [rbp - 16]             ; rax = node
+      mov       rbx, QWORD [rbp - 32]             ; rbx = node_y
+      mov       QWORD [rbx + rb_node.right], rax
+.end_else_3:
 ;  node->left = tree->nil;
-      mov       rdi, QWORD [rbp - 8]
-      mov       rcx, QWORD [rdi + rb_tree.nil]
-      mov       QWORD [rsi + rb_node.left], rcx
+      mov       rdi, QWORD [rbp - 8]              ; rdi = tree
+      mov       rax, QWORD [rdi + rb_tree.nil]    ; rax = tree->nil
+      mov       rbx, QWORD [rbp - 16]             ; rbx = node
+      mov       QWORD [rbx + rb_node.left], rax
 ;  node->right = tree->nil;
-      mov       QWORD [rsi + rb_node.right], rcx
+      mov       QWORD [rbx + rb_node.right], rax
 ;  node->color = RB_RED;
-      mov       al, BYTE RB_RED
-      mov       BYTE [rsi + rb_node.color], al
+      mov       DWORD [rbx + rb_node.color], RB_RED
 ;  rb_insert_fixup(tree, node);
-      mov       rdi, QWORD [rbp - 8]
-      mov       rsi, QWORD [rbp - 16]
+      mov       rdi, QWORD [rbp - 8]              ; rdi = tree
+      mov       rsi, QWORD [rbp - 16]             ; rsi = node
       call      rb_insert_fixup
 ; epilogue
-      pop       r12
+      mov       r12, QWORD [rbp - 48]
+      mov       rbx, QWORD [rbp - 40]
       mov       rsp, rbp
       pop       rbp
       ret
@@ -1137,35 +1098,49 @@ rb_insert:
 ;-------------------------------------------------------------------------------
 ; C definition:
 ;
-;   void rb_node_init (rb_node_t *node, void const *data);
+;   void rb_nil_init (rb_node_t *node, rb_tree_t const *tree);
 ;
 ; param:
 ;
 ;   rdi = node
-;   rsi = data
+;   rsi = tree
+;-------------------------------------------------------------------------------
+;
+      global rb_nil_init:function
+rb_nil_init:
+; initialize node
+      mov       QWORD [rdi + rb_node.tree], rsi
+      mov       rax, QWORD [rsi + rb_tree.nil]
+      mov       QWORD [rdi + rb_node.parent], rax
+      mov       QWORD [rdi + rb_node.left], rax
+      mov       QWORD [rdi + rb_node.right], rax
+      xor       rax, rax
+      mov       QWORD [rdi + rb_node.data], rax
+      mov       DWORD [rdi + rb_node.color], RB_BLACK
+      ret
+;
+;-------------------------------------------------------------------------------
+; C definition:
+;
+;   void rb_node_init (rb_node_t *node, rb_tree_t const *tree, void const *data);
+;
+; param:
+;
+;   rdi = node
+;   rsi = tree
+;   rdx = data
 ;-------------------------------------------------------------------------------
 ;
       global rb_node_init:function
 rb_node_init:
-; prologue
-      push      r12
 ; initialize node
-      xor       rax, rax
+      mov       QWORD [rdi + rb_node.tree], rsi
+      mov       rax, QWORD [rsi + rb_tree.nil]
       mov       QWORD [rdi + rb_node.parent], rax
       mov       QWORD [rdi + rb_node.left], rax
       mov       QWORD [rdi + rb_node.right], rax
-      mov       QWORD [rdi + rb_node.data], rsi
-      mov       al, RB_RED
-      mov       BYTE [rdi + rb_node.color], al
-; BEGIN PRINTF
-; printf(fmt, hdr08);
-      xor       rax, rax
-      mov       rdi, fmt
-      mov       rsi, hdr08
-      ALIGN_STACK_AND_CALL r12, printf, wrt, ..plt
-; END PRINTF
-; epilogue
-      pop       r12
+      mov       QWORD [rdi + rb_node.data], rdx
+      mov       DWORD [rdi + rb_node.color], RB_RED
       ret
 ;
 ;-------------------------------------------------------------------------------
@@ -1182,53 +1157,44 @@ rb_node_init:
 ;
 ;   QWORD [rbp - 8]   = rdi (node)
 ;   QWORD [rbp - 16]  = rsi (term_cb)
+;   QWORD [rbp - 24]  = rbx (callee saved)
+;   QWORD [rbp - 32]  = r12 (callee saved)
 ;-------------------------------------------------------------------------------
 ;
       static rb_term_rcrs
 rb_term_rcrs:
       push      rbp
       mov       rbp, rsp
-      sub       rsp, 16
-      push      r12
-; QWORD [rbp - 8] = rdi (node)
+      sub       rsp, 40
       mov       QWORD [rbp - 8], rdi
-; QWORD [rbp - 16] = rsi (term_cb)
       mov       QWORD [rbp - 16], rsi
-; BEGIN PRINTF
-; printf(fmt, hdr10);
-      push      rsi
-      push      rdi
-      xor       rax, rax
-      mov       rdi, fmt
-      mov       rsi, hdr10
-      ALIGN_STACK_AND_CALL r12, printf, wrt, ..plt
-      pop       rdi
-      pop       rsi
-; END PRINTF
-; if (n == &null_node) return
-      mov       rax, null_node
-      cmp       rdi, rax
+      mov       QWORD [rbp - 24], rbx
+      mov       QWORD [rbp - 32], r12
+; if (node == node->tree->nil) return
+      mov       rbx, QWORD [rdi + rb_node.tree]     ; rbx = tree
+      cmp       rdi, QWORD [rbx + rb_tree.nil]
       je        .epilogue
 ; rb_term_rcrs(node->left, term_cb)
-      mov       rdi, QWORD [rbp - 8]
-      mov       rdi, QWORD [rdi + rb_node.left]
-      mov       rsi, QWORD [rbp - 16]
-      call      rb_term_rcrs
-; rb_term_rcrs(node->right, term_cb)
-      mov       rdi, QWORD [rbp - 8]
-      mov       rdi, QWORD [rdi + rb_node.right]
-      mov       rsi, QWORD [rbp - 16]
+      mov       rax, QWORD [rbp - 8]                ; rax = node
+      mov       rdi, QWORD [rax + rb_node.left]     ; rdi = node->left
+      mov       rsi, QWORD [rbp - 16]               ; rsi = term_cb
       call      rb_term_rcrs
 ; term_cb(node->data)
-      mov       rdi, QWORD [rbp - 8]
-      mov       rdi, QWORD [rdi + rb_node.data]
-      mov       rsi, QWORD [rbp - 16]
-      ALIGN_STACK_AND_CALL r12, rsi
+      mov       rax, QWORD [rbp - 8]                ; rax = node
+      mov       rdi, QWORD [rax + rb_node.data]     ; rdi = node->data
+      mov       rcx, QWORD [rbp - 16]               ; rcx = term_cb
+      ALIGN_STACK_AND_CALL r12, rcx
+; rb_term_rcrs(node->right, term_cb)
+      mov       rax, QWORD [rbp - 8]                ; rax = node
+      mov       rdi, QWORD [rax + rb_node.right]    ; rdi = node->right
+      mov       rsi, QWORD [rbp - 16]               ; rsi = term_cb
+      call      rb_term_rcrs
 ; free(node)
-      mov       rdi, QWORD [rbp - 8]
+      mov       rdi, QWORD [rbp - 8]                ; rdi = node
       ALIGN_STACK_AND_CALL r12, free, wrt, ..plt
 .epilogue:
-      pop       r12
+      mov       r12, QWORD [rbp - 32]
+      mov       rbx, QWORD [rbp - 24]
       mov       rsp, rbp
       pop       rbp
       ret
@@ -1241,26 +1207,33 @@ rb_term_rcrs:
 ; param:
 ;
 ;   rdi = tree
+;
+; stack:
+;
+;   QWORD [rbp - 8]   = rdi (tree)
+;   QWORD [rbp - 16]  = rbx (callee saved)
 ;-------------------------------------------------------------------------------
       global rb_tree_term:function
 rb_tree_term:
 ; prologue
-      push      r12
-; BEGIN PRINTF
-; printf(fmt, hdr15);
-      push      rdi
-      xor       rax, rax
-      mov       rdi, fmt
-      mov       rsi, hdr15
-      ALIGN_STACK_AND_CALL r12, printf, wrt, ..plt
-      pop       rdi
-; END PRINTF
+      push      rbp
+      mov       rbp, rsp
+      sub       rsp, 24
+      mov       QWORD [rbp - 8], rdi
+      mov       QWORD [rbp - 16], rbx
 ; rb_term_rcrs(tree->root, tree->term_cb)
       mov       rsi, QWORD [rdi + rb_tree.term_cb]
-      mov       rdi, QWORD [rdi + rb_tree.root]
+      mov       rax, QWORD [rdi + rb_tree.root]
+      mov       rdi, rax
       call      rb_term_rcrs
+      mov       rdi, QWORD [rbp - 8]
+      mov       rax, QWORD [rdi + rb_tree.nil]
+      mov       rdi, rax
+      ALIGN_STACK_AND_CALL rbx, free, wrt, ..plt
 ; epilogue
-      pop       r12
+      mov       rbx, QWORD [rbp - 16]
+      mov       rsp, rbp
+      pop       rbp
       ret
 ;
 ;-------------------------------------------------------------------------------
@@ -1277,49 +1250,38 @@ rb_tree_term:
 ;
 ;   QWORD [rbp - 8]   = rdi (node)
 ;   QWORD [rbp - 16]  = rsi (trav_cb)
+;   QWORD [rbp - 24]  = rbx (callee saved)
 ;-------------------------------------------------------------------------------
 ;
       static rb_traverse
 rb_traverse:
       push      rbp
       mov       rbp, rsp
-      sub       rsp, 16
-      push      r12
-; QWORD [rbp - 8] = rdi (node)
+      sub       rsp, 24
       mov       QWORD [rbp - 8], rdi
-; QWORD [rbp - 16] = rsi (trav_cb)
       mov       QWORD [rbp - 16], rsi
-; BEGIN PRINTF
-; printf(fmt, hdr12);
-      push      rsi
-      push      rdi
-      xor       rax, rax
-      mov       rdi, fmt
-      mov       rsi, hdr12
-      ALIGN_STACK_AND_CALL r12, printf, wrt, ..plt
-      pop       rdi
-      pop       rsi
-; END PRINTF
-; if (node == &null_node) return
-      mov       rax, null_node
-      cmp       rdi, rax
+      mov       QWORD [rbp - 24], rbx
+; if (node == node->tree->nil) return
+      mov       rax, QWORD [rdi + rb_node.tree]     ; rax = tree
+      cmp       rdi, QWORD [rax + rb_tree.nil]
       je        .epilogue
 ; rb_traverse(node->left)
-      mov       rdi, QWORD [rbp - 8]
-      mov       rdi, QWORD [rdi + rb_node.left]
-      mov       rsi, QWORD [rbp - 16]
+      mov       rax, QWORD [rbp - 8]                ; rax = node
+      mov       rdi, QWORD [rax + rb_node.left]     ; rdi = node->left
+      mov       rsi, QWORD [rbp - 16]               ; rsi = trav_cb
       call      rb_traverse
-; data_cb(node->data)
-      mov       rdi, QWORD [rbp - 8]
-      mov       rsi, QWORD [rbp - 16]
-      ALIGN_STACK_AND_CALL r12, rsi
+; trav_cb(node->data)
+      mov       rax, QWORD [rbp - 8]                ; rax = node
+      mov       rdi, QWORD [rax + rb_node.data]     ; rdi = node->data
+      mov       rcx, QWORD [rbp - 16]               ; rcx = trav_cb
+      ALIGN_STACK_AND_CALL rbx, rcx
 ; rb_traverse(node->right)
-      mov       rdi, QWORD [rbp - 8]
-      mov       rdi, QWORD [rdi + rb_node.right]
-      mov       rsi, QWORD [rbp - 16]
+      mov       rax, QWORD [rbp - 8]                ; rax = node
+      mov       rdi, QWORD [rax + rb_node.right]    ; rdi = node->right
+      mov       rsi, QWORD [rbp - 16]               ; rsi = trav_cb
       call      rb_traverse
 .epilogue:
-      pop       r12
+      mov       rbx, QWORD [rbp - 24]
       mov       rsp, rbp
       pop       rbp
       ret
@@ -1336,21 +1298,9 @@ rb_traverse:
 ;
       global rb_walk:function
 rb_walk:
-; prologue
-      push      r12
-; BEGIN PRINTF
-; printf(fmt, hdr16);
-      push      rdi
-      xor       rax, rax
-      mov       rdi, fmt
-      mov       rsi, hdr16
-      ALIGN_STACK_AND_CALL r12, printf, wrt, ..plt
-      pop       rdi
-; END PRINTF
       mov       rsi, QWORD [rdi + rb_tree.trav_cb]
-      mov       rdi, QWORD [rdi + rb_tree.root]
+      mov       rax, QWORD [rdi + rb_tree.root]
+      mov       rdi, rax
       call      rb_traverse
-; epilogue
-      pop       r12
       ret
 %endif

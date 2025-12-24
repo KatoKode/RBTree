@@ -20,11 +20,11 @@
 #-------------------------------------------------------------------------------
 #
 librbtree.so: rbtree_asm.o rbtree.o
-	gcc -march=x86-64 -m64 -z noexecstack -shared rbtree_asm.o rbtree.o -o librbtree.so
+	gcc -O3 -march=x86-64 -m64 -z noexecstack -shared rbtree_asm.o rbtree.o -o librbtree.so
 rbtree.o: rbtree.c
-				gcc -march=x86-64 -m64 -Wall -fPIC -c rbtree.c -o rbtree.o
+	gcc -O3 -march=x86-64 -m64 -Wall -fPIC -c rbtree.c -o rbtree.o
 rbtree_asm.o: rbtree.asm
-				nasm -f elf64 rbtree.asm -o rbtree_asm.o
+	nasm -O3 -f elf64 rbtree.asm -o rbtree_asm.o
 .PHONY: clean
 clean:
 	rm -f librbtree.so rbtree.o

@@ -24,17 +24,18 @@
 ;
 ;-------------------------------------------------------------------------------
 ;
-RB_BLACK        EQU     0x00
-RB_RED          EQU     0xFF
+RB_BLACK        EQU     0x00000000
+RB_RED          EQU     0x000000FF
 ;
 ;-------------------------------------------------------------------------------
 ;
 struc rb_node
+  .tree         resq      1
   .parent:      resq      1
   .left:        resq      1
   .right:       resq      1
   .data:        resq      1
-  .color:       resb      1
+  .color:       resd      1
 endstruc
 ;
 ;-------------------------------------------------------------------------------
@@ -43,9 +44,11 @@ struc rb_tree
   .nil:         resq      1 
   .root:        resq      1
   .find_cb:     resq      1
+  .key_cb:      resq      1
   .nsrt_cb:     resq      1
   .term_cb:     resq      1
   .trav_cb:     resq      1
+  .rwlock:      resq      1
 endstruc
 ;
 %endif
