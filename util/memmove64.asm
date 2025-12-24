@@ -1,28 +1,23 @@
 ;-------------------------------------------------------------------------------
-;   Red-Black-Tree (RBTREE) Implementation in x86_64 Assembly Language with
-;   C interface
-;
+;   BTree Implementation in x86_64 Assembly Language with C Interface
 ;   Copyright (C) 2025  J. McIntosh
 ;
-;   RBTREE is free software; you can redistribute it and/or modify
+;   This program is free software; you can redistribute it and/or modify
 ;   it under the terms of the GNU General Public License as published by
 ;   the Free Software Foundation; either version 2 of the License, or
 ;   (at your option) any later version.
 ;
-;   RBTREE is distributed in the hope that it will be useful,
+;   This program is distributed in the hope that it will be useful,
 ;   but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;   GNU General Public License for more details.
 ;
 ;   You should have received a copy of the GNU General Public License along
-;   with RBTREE; if not, write to the Free Software Foundation, Inc.,
+;   with this program; if not, write to the Free Software Foundation, Inc.,
 ;   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 ;-------------------------------------------------------------------------------
-;
 %ifndef MEMMOVE64_ASM
 %define MEMMOVE64_ASM 1
-;
-;-------------------------------------------------------------------------------
 ;
 QW_SIZE     EQU     8
 ;
@@ -49,15 +44,12 @@ section .text
 memmove64:
       cld                     ; assume the direction is forward
       push      rdi
-      mov       rax, rdx
-      xor       rdx, rdx
-      mov       rcx, QW_SIZE
-      div       rcx
-      mov       rcx, rax
+      mov       rcx, rdx      ; copy o_size to rcx
+      and       rdx, 7        ; o_size mod 8 (# of bytes)
+      shr       rcx, 3        ; o_size div 8 (# of quadwords)
       rep movsq
       mov       rcx, rdx
       rep movsb
-.return:
       pop       rax
       ret
 %endif
