@@ -21,10 +21,10 @@
 # file: demo makefile
 #-------------------------------------------------------------------------------
 demo: main.o ../rbtree/librbtree.so ../util/libutil.so
-	gcc -march=x86-64 -m64 main.o ../rbtree/librbtree.so ../util/libutil.so \
-		-o demo
+	gcc -O3 -march=x86-64 -m64 -z noexecstack -pthread main.o ../rbtree/librbtree.so \
+		../util/libutil.so -o demo
 main.o: main.c
-	gcc -march=x86-64 -m64 -Wall -c main.c -o main.o
+	gcc -O3 -march=x86-64 -m64 -Wall -c main.c -o main.o
 .PHONY: clean
 clean:
 	rm -f demo main.o

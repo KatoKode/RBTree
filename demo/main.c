@@ -33,135 +33,148 @@ int main (int argc, char *argv[]) {
 
   // allocate and initialize our b-tree
   rb_tree_t *tree = rb_tree_alloc();
-  rb_tree_init(tree, find_cb, nsrt_cb, term_cb, walk_cb);
-
-  // data_t object used by b_search to hold return value
-  data_t db = {0.0, "0.0"};
+  rb_tree_init(tree, find_cb, key_cb, nsrt_cb, term_cb, trav_cb);
 
   for (size_t i = 0L; i < DATA_COUNT; ++i) {
     data_t *d = data_alloc();
-    size_t x = 0L;
 
-    // get a random double, populate a data_t object, and search the tree for a
-    // duplicate
     do {
-      // get a random double that is greater-than 0.000001F
-      do { d->d = drand48(); } while (d->d < 0.000001F);
+      // populate d->lng field
+      do { d->lng = lrand48(); } while (d->lng < 10000000 || d->lng > 40000000);
 
-      // assign the random double to our data array
-      da[i] = d->d;
+      // record random long int
+      random_long_int[i] = d->lng;
 
-      // convert the random double to a string and store in our data object
-      (void) snprintf(d->s, STR_LEN + 1, "%8.6f", d->d);
-
-      // yield the CPU when dealing with duplicates
-      if ((x++ % 2L) == 0L) sched_yield();
+      // populate d->str field
+      (void) snprintf(d->str, STR_LEN + 1, "%ld", d->lng);
 
       // search tree for duplicate data_t object
-    } while ((rb_find(tree, (void const *)&da[i])) != NULL);
+    } while ((rb_find(tree, (void const *)&d->lng)) != tree->nil);
 
-    // got a unique data_t object to add to the tree
+    // allocate and initialize node, then insert into tree
     rb_node_t *node = rb_node_alloc();
-    rb_node_init(node, d);
+    rb_node_init(node, tree, d);
     rb_insert(tree, node);
   }
-
-  // walk the tree outputing data_t objects
+#ifdef WALK_TREE
+  // walk the tree
   walk_tree(tree);
+#endif
+  size_t delete_count = (size_t)DELETE_COUNT;
 
   // delete some data_t objects from the tree
-  for (size_t n = 0L; n < DELETE_COUNT; ++n) {
-    puts("\n---| begin delete |---\n");
-
+  for (size_t n = 0L; n < delete_count; ++n) {
+#ifdef RBTREE_DEBUG
+    printf("\n---| begin delete | delete: %ld ---\n", random_long_int[n]);
+#endif
     // search for a matching data_t object and delete it from the tree
-    rb_delete(tree, (void const *)&da[n]);
+    rb_delete(tree, (void const *)&random_long_int[n]);
 
+#ifdef RBTREE_DEBUG
     puts("\n---| begin search after delete |---\n");
-
     // search for deleted data_t object to test deletion
-    if ((rb_find(tree, (void const *)&da[n])) != NULL) {
-      print_data("\n---| DELETION ERROR! |---\n", &db);
+    if ((rb_find(tree, (void const *)&random_long_int[n])) != tree->nil) {
+      puts("\n---| DELETION ERROR! |---\n");
     }
-
-    // yield the CPU
-    if ((n % 2L) == 0L) sched_yield();
+#endif
   }
-
   // try to delete a data_t object that is not in the tree
+#ifdef RBTREE_DEBUG
   puts("\n---| begin delete of key not in tree |---\n");
-  double b = drand48();
-  rb_delete(tree, (void const *)&b);
-
-  // walk the tree outputing data_t objects - again
+#endif
+  long lng = lrand48();
+  rb_delete(tree, (void const *)&lng);
+#ifdef WALK_TREE
+  // walk the tree
   walk_tree(tree);
-
-  // release memory held by all the data_t objects (if any), as well as, all
-  // the memory held by the tree
+#endif
+  // terminate and free the tree
   term_tree(tree);
   rb_tree_free(tree);
 
   return 0;
 }
+//------------------------------------------------------------------------------
 //
-// callback to compare key with object
+// FIND_CB
 //
+//------------------------------------------------------------------------------
 int find_cb (void const * vp1, void const * vp2) {
-  data_t const *d = (data_t const *)vp1;
-  double const k = *(double const *)vp2;
-
-  printf("%s:  k: %8.6f (lt eq gt) d->d: %8.6f\n", __func__, k, d->d);
-
+  long const k = *(long const *)vp1;
+  data_t const *d = (data_t const *)vp2;
+#ifdef RBTREE_DEBUG
+  printf("%s:  k: %ld <=> d->lng: %ld\n", __func__, k, d->lng);
+#endif
   // do comparsions
-  if (k > d->d) return 1;
-  else if (k < d->d) return -1;
+  if (k < d->lng) return -1;
+  else if (k > d->lng) return 1;
   return 0;
 }
+//------------------------------------------------------------------------------
 //
-// callback to compare objects
+// KEY_CB
 //
+//------------------------------------------------------------------------------
+void const * key_cb (void const *vp) {
+  return &((data_t const *)vp)->lng;
+}
+//------------------------------------------------------------------------------
+//
+// NSRT_CB
+//
+//------------------------------------------------------------------------------
 int nsrt_cb (void const *vp1, void const *vp2) {
-  data_t const *d1 = vp1;
-  data_t const *d2 = vp2;
-
-  printf("%s:  d1: %8.6f s: %8s (lt eq gt) d2: %8.6f s: %8s\n",__func__,d1->d,
-      d1->s, d2->d,d2->s);
-
+  data_t const *d1 = (data_t const*)vp1;
+  data_t const *d2 = (data_t const*)vp2;
+#ifdef RBTREE_DEBUG
+  printf("%s:  d1->lng: %ld d1->str: %s <=> d2->lng: %ld d2->str: %s\n",
+      __func__,d1->lng, d1->str, d2->lng,d2->str);
+#endif
   // do comparsions
-  if (d1->d > d2->d) return 1;
-  else if (d1->d < d2->d) return -1;
+  if (d1->lng < d2->lng) return -1;
+  else if (d1->lng > d2->lng) return 1;
   return 0;
 }
+//------------------------------------------------------------------------------
 //
-// callback to process object before deletion from tree
+// TERM_CB
 //
+//------------------------------------------------------------------------------
 void term_cb (void *vp) {
-  data_t *d = vp;
-
-  printf("\t\t\t%6lu:  d: %8.6lf  s: %8s\n", ndx++, d->d, d->s);
+#ifdef RBTREE_DEBUG
+  data_t const *d = (data_t const *)vp;
+  printf("%s: \t\t\t%6lu:  d->lng: %ld  d->str: %s\n",
+      __func__, ndx++, d->lng, d->str);
 
   fflush(stdout);
-
+#endif
   free(vp);
 }
+//------------------------------------------------------------------------------
 //
-// output data object
+// PRINT_DATA
 //
+//------------------------------------------------------------------------------
 void print_data (char const *s, data_t const *d) {
-  printf("%s:  d: %8.6f s: %8s\n", s, d->d, d->s);
+  printf("%s:  d->lng: %ld d->str: %s\n", s, d->lng, d->str);
 }
+//------------------------------------------------------------------------------
 //
-// callback for tree walking
+// TRAV_CB
 //
-void walk_cb (rb_node_t *node) {
-  data_t const *d = node->data;
+//------------------------------------------------------------------------------
+void trav_cb (void const *vp) {
+  data_t const *d = (data_t const*)vp;
 
-  printf("\t\t\t%6lu:  d: %8.6lf  s: %8s\n", ndx++, d->d, d->s);
+  printf("\t\t\t%6lu:  d->lng: %ld  d->str: %s\n", ndx++, d->lng, d->str);
 
   fflush(stdout);
 }
+//------------------------------------------------------------------------------
 //
-// begin tree termination
+// TERM_TREE
 //
+//------------------------------------------------------------------------------
 void term_tree (rb_tree_t *tree) {
   puts("\n---| tree termination |---\n");
 
@@ -170,9 +183,11 @@ void term_tree (rb_tree_t *tree) {
 
   rb_tree_term(tree);
 }
+//------------------------------------------------------------------------------
 //
-// begin tree walking
+// WALK_TREE
 //
+//------------------------------------------------------------------------------
 void walk_tree (rb_tree_t *tree) {
   puts("\n---| walk tree |---\n");
 

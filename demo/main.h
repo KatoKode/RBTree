@@ -21,13 +21,15 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <pthread.h>
 #include "../rbtree/rbtree.h"
 #include "../util/util.h"
 
+//#define RBTREE_DEBUG  1
+#define WALK_TREE 1
+
 // defines you can modify
-#define DATA_COUNT    128
-#define DELETE_COUNT  0
+#define DATA_COUNT    (8 * 1024)
+#define DELETE_COUNT  (DATA_COUNT * 0.75)
 
 // defines you should not modify
 #define STR_LEN   15
@@ -39,21 +41,26 @@ size_t ndx;
 typedef struct data data_t;
 
 struct data {
-  double    d;
-  char      s[STR_LEN + 1];
+  long      lng;
+  char      str[STR_LEN + 1];
 };
 
 #define data_alloc() (calloc(1, sizeof(data_t)))
 #define data_free(P) (free(P), P = NULL)
 
-// array of doubles
-double da [DATA_COUNT];
+long random_long_int [DATA_COUNT];
 
+long val[DATA_COUNT] = {
+  1000001, 1000002, 1000003, 1000004, 1000005, 1000006, 1000007, 1000008,
+  1000009, 1000010, 1000011, 1000012, 1000013, 1000014, 1000015, 1000016,
+  1000017, 1000018, 1000019, 1000020
+};
 // callback definitions
 int find_cb (void const *, void const *);
+void const * key_cb (void const *);
 int nsrt_cb (void const *, void const *);
 void term_cb (void *);
-void walk_cb (rb_node_t *);
+void trav_cb (void const *);
 // output data_t object
 void print_data (char const *, data_t const *);
 // begin tree termination
