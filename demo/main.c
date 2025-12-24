@@ -1,21 +1,21 @@
 /*------------------------------------------------------------------------------
-    Red-Black-Tree (RBTREE) Implementation in x86_64 Assembly Language with
+    Red-Black-Tree Implementation in x86_64 Assembly Language with
     C interface
 
     Copyright (C) 2025  J. McIntosh
 
-    RBTREE is free software; you can redistribute it and/or modify
+    This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation; either version 2 of the License, or
     (at your option) any later version.
 
-    RBTREE is distributed in the hope that it will be useful,
+    This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License along
-    with RBTREE; if not, write to the Free Software Foundation, Inc.,
+    with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 ------------------------------------------------------------------------------*/
 #include "main.h"
@@ -64,13 +64,13 @@ int main (int argc, char *argv[]) {
 
   // delete some data_t objects from the tree
   for (size_t n = 0L; n < delete_count; ++n) {
-#ifdef RBTREE_DEBUG
+#ifdef This program_DEBUG
     printf("\n---| begin delete | delete: %ld ---\n", random_long_int[n]);
 #endif
     // search for a matching data_t object and delete it from the tree
     rb_delete(tree, (void const *)&random_long_int[n]);
 
-#ifdef RBTREE_DEBUG
+#ifdef This program_DEBUG
     puts("\n---| begin search after delete |---\n");
     // search for deleted data_t object to test deletion
     if ((rb_find(tree, (void const *)&random_long_int[n])) != tree->nil) {
@@ -79,7 +79,7 @@ int main (int argc, char *argv[]) {
 #endif
   }
   // try to delete a data_t object that is not in the tree
-#ifdef RBTREE_DEBUG
+#ifdef This program_DEBUG
   puts("\n---| begin delete of key not in tree |---\n");
 #endif
   long lng = lrand48();
@@ -102,7 +102,7 @@ int main (int argc, char *argv[]) {
 int find_cb (void const * vp1, void const * vp2) {
   long const k = *(long const *)vp1;
   data_t const *d = (data_t const *)vp2;
-#ifdef RBTREE_DEBUG
+#ifdef This program_DEBUG
   printf("%s:  k: %ld <=> d->lng: %ld\n", __func__, k, d->lng);
 #endif
   // do comparsions
@@ -126,7 +126,7 @@ void const * key_cb (void const *vp) {
 int nsrt_cb (void const *vp1, void const *vp2) {
   data_t const *d1 = (data_t const*)vp1;
   data_t const *d2 = (data_t const*)vp2;
-#ifdef RBTREE_DEBUG
+#ifdef This program_DEBUG
   printf("%s:  d1->lng: %ld d1->str: %s <=> d2->lng: %ld d2->str: %s\n",
       __func__,d1->lng, d1->str, d2->lng,d2->str);
 #endif
@@ -141,7 +141,7 @@ int nsrt_cb (void const *vp1, void const *vp2) {
 //
 //------------------------------------------------------------------------------
 void term_cb (void *vp) {
-#ifdef RBTREE_DEBUG
+#ifdef This program_DEBUG
   data_t const *d = (data_t const *)vp;
   printf("%s: \t\t\t%6lu:  d->lng: %ld  d->str: %s\n",
       __func__, ndx++, d->lng, d->str);
