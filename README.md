@@ -20,10 +20,10 @@ by Cormen, Leiserson, Rivest, and Stein
 ## FEATURES
 **Generic B-Tree Structure:
 
-Separate comparison callbacks for full objects (nrst_cb) and keys to full objects (find_cb).
-Key extraction callback (k_get_cb) for searching with keys only.
-Object deletion callback (term_cb) for cleanup during removal/termination.
-Tree traversal callback (trav_cb) for user supplied output of objects.
++ Separate comparison callbacks for full objects (nrst_cb) and keys to full objects (find_cb).
++ Key extraction callback (k_get_cb) for searching with keys only.
++ Object deletion callback (term_cb) for cleanup during removal/termination.
++ Tree traversal callback (trav_cb) for user supplied output of objects.
 
 **Classic Red-Black Tree Implementation:**
 
