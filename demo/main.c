@@ -64,13 +64,13 @@ int main (int argc, char *argv[]) {
 
   // delete some data_t objects from the tree
   for (size_t n = 0L; n < delete_count; ++n) {
-#ifdef This program_DEBUG
+#ifdef RBTREE_DEBUG
     printf("\n---| begin delete | delete: %ld ---\n", random_long_int[n]);
 #endif
     // search for a matching data_t object and delete it from the tree
     rb_delete(tree, (void const *)&random_long_int[n]);
 
-#ifdef This program_DEBUG
+#ifdef RBTREE_DEBUG
     puts("\n---| begin search after delete |---\n");
     // search for deleted data_t object to test deletion
     if ((rb_find(tree, (void const *)&random_long_int[n])) != tree->nil) {
@@ -79,7 +79,7 @@ int main (int argc, char *argv[]) {
 #endif
   }
   // try to delete a data_t object that is not in the tree
-#ifdef This program_DEBUG
+#ifdef RBTREE_DEBUG
   puts("\n---| begin delete of key not in tree |---\n");
 #endif
   long lng = lrand48();
@@ -102,7 +102,7 @@ int main (int argc, char *argv[]) {
 int find_cb (void const * vp1, void const * vp2) {
   long const k = *(long const *)vp1;
   data_t const *d = (data_t const *)vp2;
-#ifdef This program_DEBUG
+#ifdef RBTREE_DEBUG
   printf("%s:  k: %ld <=> d->lng: %ld\n", __func__, k, d->lng);
 #endif
   // do comparsions
@@ -126,7 +126,7 @@ void const * key_cb (void const *vp) {
 int nsrt_cb (void const *vp1, void const *vp2) {
   data_t const *d1 = (data_t const*)vp1;
   data_t const *d2 = (data_t const*)vp2;
-#ifdef This program_DEBUG
+#ifdef RBTREE_DEBUG
   printf("%s:  d1->lng: %ld d1->str: %s <=> d2->lng: %ld d2->str: %s\n",
       __func__,d1->lng, d1->str, d2->lng,d2->str);
 #endif
@@ -141,7 +141,7 @@ int nsrt_cb (void const *vp1, void const *vp2) {
 //
 //------------------------------------------------------------------------------
 void term_cb (void *vp) {
-#ifdef This program_DEBUG
+#ifdef RBTREE_DEBUG
   data_t const *d = (data_t const *)vp;
   printf("%s: \t\t\t%6lu:  d->lng: %ld  d->str: %s\n",
       __func__, ndx++, d->lng, d->str);
