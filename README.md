@@ -6,7 +6,13 @@
 [![License: GPL-2.0](https://img.shields.io/badge/License-GPL%202.0-blue.svg)](https://opensource.org/licenses/GPL-2.0)
 [![Stars](https://img.shields.io/github/stars/KatoKode/RBTree?style=social)](https://github.com/KatoKode/RBTree/stargazers)
 
-by JD McIntosh
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/ebd895bb-cd2c-4a00-9d15-91abc66bb84c"
+       height="640"
+       width="60%" 
+       alt="Neon blue social media image">
+</div>
 
 ---
 
